@@ -8,6 +8,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"image/color"
+	"net/url"
 )
 
 type myTheme struct{}
@@ -21,7 +22,6 @@ func (m myTheme) Icon(name fyne.ThemeIconName) fyne.Resource {
 		homeBytes := []byte{1, 2, 3}
 		fyne.NewStaticResource("myHome", homeBytes)
 	}
-
 	return theme.DefaultTheme().Icon(name)
 }
 
@@ -44,34 +44,51 @@ func main() {
 	var _ fyne.Theme = (*myTheme)(nil)
 	myApp := app.New()
 	myWin := myApp.NewWindow("Demo")
+	myWin.SetMaster()
 	myWin.Resize(fyne.Size{
 		Width:  300,
 		Height: 300,
 	})
 
+	//Name Box
 	nameEntry := widget.NewEntry()
 	nameEntry.SetPlaceHolder("input name")
-	//nameEntry.OnChanged = func(content string) {
-	//	fmt.Println("name:", nameEntry.Text, "entered")
-	//}
-
-	passEntry := widget.NewPasswordEntry()
-	passEntry.SetPlaceHolder("input password")
-
 	nameBox := container.NewVBox(widget.NewLabel("Name"), nameEntry)
 
+	//Password Box
+	passEntry := widget.NewPasswordEntry()
+	passEntry.SetPlaceHolder("input password")
 	passwordBox := container.NewVBox(widget.NewLabel("Password"), passEntry)
 
-	loginBtn := widget.NewButton("Login", func() {
-		fmt.Println("name:", nameEntry.Text, "password:", passEntry.Text, "login in")
-	})
-
+	//Description Box
 	multiEntry := widget.NewEntry()
 	multiEntry.SetPlaceHolder("please enter\nyour description")
 	multiEntry.MultiLine = true
 
-	content := container.NewVBox(nameBox, passwordBox, loginBtn)
+	//Login Button
+	loginBtn := widget.NewButton("Login", func() {
+		go showLogin(myApp, nameEntry.Text, passEntry.Text, multiEntry.Text)
+	})
+
+	//URL Button
+	bugURL, _ := url.Parse("https://github.com/sytgj7896321/GUI/issues/new")
+
+	content := container.NewVBox(nameBox, passwordBox, multiEntry, loginBtn, widget.NewHyperlink("Report a bug", bugURL))
 
 	myWin.SetContent(content)
-	myWin.ShowAndRun()
+	myWin.Show()
+	myApp.Run()
+	tidyUp()
+
+}
+
+func tidyUp() {
+	fmt.Println("Exited")
+}
+
+func showLogin(app fyne.App, name, password, description string) {
+	win := app.NewWindow("Login Window")
+	win.SetContent(widget.NewLabel("name: " + name + " password: " + password + " login in\nDescription: " + description))
+	win.Resize(fyne.NewSize(200, 200))
+	win.Show()
 }
