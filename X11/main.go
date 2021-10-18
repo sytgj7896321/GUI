@@ -1,6 +1,7 @@
 package main
 
 import (
+	"GUI/X11/pics"
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -42,41 +43,35 @@ func (m myTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) colo
 
 func main() {
 	var _ fyne.Theme = (*myTheme)(nil)
+	fmt.Println("Thank you for use")
+
+	pics.MakeCache()
+
+	var windows []fyne.Window
 	myApp := app.New()
-	myWin := myApp.NewWindow("Demo")
-	myWin.SetMaster()
-	myWin.Resize(fyne.Size{
+	mainWindow := myApp.NewWindow("Wallpaper Tool")
+	mainWindow.SetMaster()
+	mainWindow.Resize(fyne.Size{
 		Width:  300,
-		Height: 300,
+		Height: 100,
 	})
 
-	//Name Box
-	nameEntry := widget.NewEntry()
-	nameEntry.SetPlaceHolder("input name")
-	nameBox := container.NewVBox(widget.NewLabel("Name"), nameEntry)
-
-	//Password Box
-	passEntry := widget.NewPasswordEntry()
-	passEntry.SetPlaceHolder("input password")
-	passwordBox := container.NewVBox(widget.NewLabel("Password"), passEntry)
-
-	//Description Box
-	multiEntry := widget.NewEntry()
-	multiEntry.SetPlaceHolder("please enter\nyour description")
-	multiEntry.MultiLine = true
-
-	//Login Button
-	loginBtn := widget.NewButton("Login", func() {
-		go showLogin(myApp, nameEntry.Text, passEntry.Text, multiEntry.Text)
+	loginBtn := widget.NewButton("Capture Picture", func() {
+		go func() {
+			windows = append(windows, pics.CapturePic(myApp))
+		}()
 	})
 
-	//URL Button
+	closeBtn := widget.NewButton("Close All Pictures", func() {
+		go pics.CloseAllWindows(windows)
+	})
+
 	bugURL, _ := url.Parse("https://github.com/sytgj7896321/GUI/issues/new")
 
-	content := container.NewVBox(nameBox, passwordBox, multiEntry, loginBtn, widget.NewHyperlink("Report a bug", bugURL))
+	content := container.NewVBox(loginBtn, closeBtn, widget.NewHyperlink("Report a bug", bugURL))
 
-	myWin.SetContent(content)
-	myWin.Show()
+	mainWindow.SetContent(content)
+	mainWindow.Show()
 	myApp.Run()
 	tidyUp()
 
@@ -84,11 +79,4 @@ func main() {
 
 func tidyUp() {
 	fmt.Println("Exited")
-}
-
-func showLogin(app fyne.App, name, password, description string) {
-	win := app.NewWindow("Login Window")
-	win.SetContent(widget.NewLabel("name: " + name + " password: " + password + " login in\nDescription: " + description))
-	win.Resize(fyne.NewSize(200, 200))
-	win.Show()
 }
