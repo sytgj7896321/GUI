@@ -45,7 +45,7 @@ func main() {
 	var _ fyne.Theme = (*myTheme)(nil)
 	fmt.Println("Thank you for use")
 
-	pics.MakeCache()
+	go pics.MakeCache()
 
 	var windows []fyne.Window
 	myApp := app.New()
