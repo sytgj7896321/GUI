@@ -56,7 +56,7 @@ func main() {
 		Height: 100,
 	})
 
-	loginBtn := widget.NewButton("Capture Picture", func() {
+	captureBtn := widget.NewButton("Capture Picture", func() {
 		go func() {
 			windows = append(windows, pics.CapturePic(myApp))
 		}()
@@ -68,7 +68,7 @@ func main() {
 
 	bugURL, _ := url.Parse("https://github.com/sytgj7896321/GUI/issues/new")
 
-	content := container.NewVBox(loginBtn, closeBtn, widget.NewHyperlink("Report a bug", bugURL))
+	content := container.NewVBox(captureBtn, closeBtn, widget.NewHyperlink("Report a bug", bugURL))
 
 	mainWindow.SetContent(content)
 	mainWindow.Show()

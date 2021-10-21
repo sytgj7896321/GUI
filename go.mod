@@ -4,11 +4,9 @@ go 1.17
 
 require (
 	fyne.io/fyne/v2 v2.1.0
-	github.com/EDDYCJY/fake-useragent v0.2.0
 	github.com/PuerkitoBio/goquery v1.7.1
+	github.com/disintegration/imaging v1.6.2
 	github.com/go-resty/resty/v2 v2.6.0
-	golang.org/x/net v0.0.0-20210614182718-04defd469f4e
-	golang.org/x/text v0.3.6
 )
 
 require (
@@ -26,6 +24,8 @@ require (
 	github.com/stretchr/testify v1.5.1 // indirect
 	github.com/yuin/goldmark v1.3.8 // indirect
 	golang.org/x/image v0.0.0-20200430140353-33d19683fad8 // indirect
+	golang.org/x/net v0.0.0-20210614182718-04defd469f4e // indirect
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
+	golang.org/x/text v0.3.6 // indirect
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )
