@@ -3,6 +3,7 @@ package pics
 import (
 	"GUI/X11/fetcher"
 	"bytes"
+	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
@@ -28,7 +29,9 @@ const (
 	full     = "https://w.wallhaven.cc/full/"
 )
 
-var imageChan = make(chan Image, 48)
+var (
+	imageChan = make(chan Image, 24)
+)
 
 func CloseAllWindows(windows []fyne.Window) {
 	for _, w := range windows {
@@ -64,17 +67,20 @@ func CapturePic(app fyne.App) fyne.Window {
 
 func MakeCache() {
 	for true {
-		body, err := fetcher.Fetch(random)
-		if err != nil {
-			panic(err)
-		}
-		dom, _ := goquery.NewDocumentFromReader(strings.NewReader(string(body)))
-		idList := dom.Find(selector).Contents().Map(func(i int, selection *goquery.Selection) string {
-			e, _ := selection.Children().Attr("data-wallpaper-id")
-			return e
-		})
-		for i := range idList {
-			go createImage(idList[i])
+		fmt.Println(len(imageChan))
+		if len(imageChan) <= 8 {
+			body, err := fetcher.Fetch(random)
+			if err != nil {
+				panic(err)
+			}
+			dom, _ := goquery.NewDocumentFromReader(strings.NewReader(string(body)))
+			idList := dom.Find(selector).Contents().Map(func(i int, selection *goquery.Selection) string {
+				e, _ := selection.Children().Attr("data-wallpaper-id")
+				return e
+			})
+			for i := range idList {
+				go createImage(idList[i])
+			}
 		}
 	}
 }
