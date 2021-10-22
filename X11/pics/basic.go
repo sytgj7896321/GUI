@@ -3,6 +3,7 @@ package pics
 import (
 	"GUI/X11/fetcher"
 	"bytes"
+	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
@@ -10,7 +11,6 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"github.com/PuerkitoBio/goquery"
 	"io"
-	"log"
 	"strings"
 )
 
@@ -29,7 +29,7 @@ const (
 )
 
 var (
-	imageChan = make(chan Image, 24)
+	imageChan = make(chan Image, 48)
 )
 
 func CloseAllWindows(windows []fyne.Window) {
@@ -40,23 +40,11 @@ func CloseAllWindows(windows []fyne.Window) {
 
 func CapturePic(app fyne.App) fyne.Window {
 	img := <-imageChan
-	myWindow := app.NewWindow(img.Id)
+	myWindow := app.NewWindow("Picture")
 	myWindow.Resize(fyne.NewSize(450, 350))
-	myCanvas := myWindow.Canvas()
 	image := canvas.NewImageFromReader(img.ImagData, img.Id)
-	myCanvas.SetContent(image)
 
-	toolbar := widget.NewToolbar(
-		widget.NewToolbarAction(theme.DocumentCreateIcon(), func() {
-			log.Println("New document")
-		}),
-		widget.NewToolbarAction(theme.ContentCutIcon(), func() {}),
-		widget.NewToolbarAction(theme.ContentCopyIcon(), func() {}),
-		widget.NewToolbarAction(theme.ContentPasteIcon(), func() {}),
-		widget.NewToolbarAction(theme.HelpIcon(), func() {
-			log.Println("Display help")
-		}),
-	)
+	toolbar := toolBar(myWindow)
 	content := container.NewBorder(toolbar, nil, nil, nil, image)
 	myWindow.SetContent(content)
 	myWindow.Show()
@@ -66,7 +54,7 @@ func CapturePic(app fyne.App) fyne.Window {
 
 func MakeCache() {
 	for true {
-		if len(imageChan) <= 8 {
+		if len(imageChan) <= 24 {
 			body, err := fetcher.Fetch(random)
 			if err != nil {
 				panic(err)
@@ -77,23 +65,44 @@ func MakeCache() {
 				return e
 			})
 			for i := range idList {
-				go createImage(idList[i])
+				go downloadImage(idList[i])
 			}
 		}
 	}
 }
 
-func createImage(id string) {
+func downloadImage(id string) {
 	img := Image{
 		Id:    id,
 		Small: small + string([]byte(id)[:2]) + "/" + id + ".jpg",
 		Full:  full + string([]byte(id)[:2]) + "/wallhaven-" + id + ".jpg",
 	}
-	data, err := fetcher.Fetch(img.Small)
+	//TODO ProgressBar
+	body, err := fetcher.Fetch(img.Small)
 	if err != nil {
-		panic(err)
+		return
 	}
-	reader := bytes.NewReader(data)
-	img.ImagData = reader
+	img.ImagData = bytes.NewReader(body)
 	imageChan <- img
+}
+
+func toolBar(myWindow fyne.Window) fyne.CanvasObject {
+	toolbar := widget.NewToolbar(
+		widget.NewToolbarAction(theme.ViewRefreshIcon(), func() {
+			img := <-imageChan
+			image := canvas.NewImageFromReader(img.ImagData, img.Id)
+			content := container.NewBorder(toolBar(myWindow), nil, nil, nil, image)
+			myWindow.SetContent(content)
+		}),
+		widget.NewToolbarAction(theme.ViewFullScreenIcon(), func() {
+			myWindow.SetFullScreen(true)
+		}),
+		widget.NewToolbarAction(theme.ContentCopyIcon(), func() {
+			fmt.Println("Copy to Clipboard")
+		}),
+		widget.NewToolbarAction(theme.DownloadIcon(), func() {
+			fmt.Println("Download to Local")
+		}),
+	)
+	return toolbar
 }
