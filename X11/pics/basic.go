@@ -3,7 +3,6 @@ package pics
 import (
 	"GUI/X11/fetcher"
 	"bytes"
-	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
@@ -67,7 +66,6 @@ func CapturePic(app fyne.App) fyne.Window {
 
 func MakeCache() {
 	for true {
-		fmt.Println(len(imageChan))
 		if len(imageChan) <= 8 {
 			body, err := fetcher.Fetch(random)
 			if err != nil {
