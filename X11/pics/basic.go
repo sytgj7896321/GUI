@@ -74,12 +74,12 @@ func MakeCache() {
 			return e
 		})
 		for i := range idList {
-			imageChan <- createImage(idList[i])
+			go createImage(idList[i])
 		}
 	}
 }
 
-func createImage(id string) Image {
+func createImage(id string) {
 	img := Image{
 		Id:    id,
 		Small: small + string([]byte(id)[:2]) + "/" + id + ".jpg",
@@ -91,5 +91,5 @@ func createImage(id string) Image {
 	}
 	reader := bytes.NewReader(data)
 	img.ImagData = reader
-	return img
+	imageChan <- img
 }
