@@ -6,77 +6,63 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
-	"image/color"
 	"net/url"
 )
 
-type myTheme struct{}
-
-func (m myTheme) Font(style fyne.TextStyle) fyne.Resource {
-	return theme.DefaultTheme().Font(style)
-}
-
-func (m myTheme) Icon(name fyne.ThemeIconName) fyne.Resource {
-	if name == theme.IconNameHome {
-		homeBytes := []byte{1, 2, 3}
-		fyne.NewStaticResource("myHome", homeBytes)
-	}
-	return theme.DefaultTheme().Icon(name)
-}
-
-func (m myTheme) Size(name fyne.ThemeSizeName) float32 {
-	return theme.DefaultTheme().Size(name)
-}
-
-func (m myTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
-	if name == theme.ColorNameBackground {
-		if variant == theme.VariantLight {
-			return color.White
-		}
-		return color.Black
-	}
-
-	return theme.DefaultTheme().Color(name, variant)
-}
-
 func main() {
-	var _ fyne.Theme = (*myTheme)(nil)
-	fmt.Println("Thank you for use")
-
 	go pics.MakeCache()
 
-	var windows []fyne.Window
+	var picWindows []fyne.Window
 	myApp := app.New()
 	mainWindow := myApp.NewWindow("Wallpaper Tool")
 	mainWindow.SetMaster()
-	mainWindow.Resize(fyne.Size{
-		Width:  300,
-		Height: 100,
-	})
+	mainWindow.Resize(fyne.NewSize(400, 100))
 
 	captureBtn := widget.NewButton("Capture Picture", func() {
 		go func() {
-			windows = append(windows, pics.CapturePic(myApp))
+			picWindows = append(picWindows, pics.CapturePic(myApp))
 		}()
 	})
 
 	closeBtn := widget.NewButton("Close All Pictures", func() {
-		go pics.CloseAllWindows(windows)
+		go pics.CloseAllWindows(picWindows)
 	})
-
 	bugURL, _ := url.Parse("https://github.com/sytgj7896321/GUI/issues/new")
 
-	content := container.NewVBox(captureBtn, closeBtn, widget.NewHyperlink("Report a bug", bugURL))
+	tabs := container.NewAppTabs(
+		container.NewTabItemWithIcon(
+			"Home",
+			theme.HomeIcon(),
+			container.New(layout.NewGridLayoutWithColumns(1), captureBtn, closeBtn),
+		),
+		container.NewTabItemWithIcon(
+			"Favourite",
+			theme.ListIcon(),
+			container.New(layout.NewGridLayoutWithColumns(1), widget.NewLabel("TODO")),
+		),
+		container.NewTabItemWithIcon(
+			"Settings",
+			theme.SettingsIcon(),
+			container.New(layout.NewGridLayoutWithColumns(1), widget.NewLabel("TODO")),
+		),
+		container.NewTabItemWithIcon(
+			"Help",
+			theme.HelpIcon(),
+			container.New(layout.NewGridLayoutWithColumns(1), widget.NewHyperlink("Report a bug", bugURL))),
+	)
+	tabs.SetTabLocation(container.TabLocationTop)
 
+	content := container.NewVBox(tabs)
 	mainWindow.SetContent(content)
 	mainWindow.Show()
 	myApp.Run()
 	tidyUp()
-
 }
 
 func tidyUp() {
+	fmt.Println("Thank you for use")
 	fmt.Println("Exited")
 }

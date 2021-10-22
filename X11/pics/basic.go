@@ -5,8 +5,12 @@ import (
 	"bytes"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/widget"
 	"github.com/PuerkitoBio/goquery"
 	"io"
+	"log"
 	"strings"
 )
 
@@ -35,14 +39,26 @@ func CloseAllWindows(windows []fyne.Window) {
 func CapturePic(app fyne.App) fyne.Window {
 	img := <-imageChan
 	myWindow := app.NewWindow(img.Id)
-	myWindow.Resize(fyne.Size{
-		Width:  300,
-		Height: 200,
-	})
+	myWindow.Resize(fyne.NewSize(450, 350))
 	myCanvas := myWindow.Canvas()
-	//TODO
-	myCanvas.SetContent(canvas.NewImageFromReader(img.ImagData, img.Id))
+	image := canvas.NewImageFromReader(img.ImagData, img.Id)
+	myCanvas.SetContent(image)
+
+	toolbar := widget.NewToolbar(
+		widget.NewToolbarAction(theme.DocumentCreateIcon(), func() {
+			log.Println("New document")
+		}),
+		widget.NewToolbarAction(theme.ContentCutIcon(), func() {}),
+		widget.NewToolbarAction(theme.ContentCopyIcon(), func() {}),
+		widget.NewToolbarAction(theme.ContentPasteIcon(), func() {}),
+		widget.NewToolbarAction(theme.HelpIcon(), func() {
+			log.Println("Display help")
+		}),
+	)
+	content := container.NewBorder(toolbar, nil, nil, nil, image)
+	myWindow.SetContent(content)
 	myWindow.Show()
+
 	return myWindow
 }
 
