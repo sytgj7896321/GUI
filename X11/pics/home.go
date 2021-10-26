@@ -3,14 +3,11 @@ package pics
 import (
 	"GUI/X11/fetcher"
 	"bytes"
-	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
-	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/theme"
-	"fyne.io/fyne/v2/widget"
 	"github.com/PuerkitoBio/goquery"
 	"io"
+	"strconv"
 	"strings"
 )
 
@@ -34,7 +31,7 @@ const (
 )
 
 var (
-	imageChan      = make(chan Image, 96)
+	imageChan      = make(chan Image, 144)
 	captureWindows []*Window
 )
 
@@ -46,33 +43,18 @@ func CloseAllWindows() {
 	captureWindows = captureWindows[len(captureWindows):]
 }
 
+func RefreshAll() {
+	for _, r := range captureWindows {
+		r.Refresh()
+	}
+}
+
 func CapturePic() {
-	win := fyne.CurrentApp().NewWindow("Picture")
+	win := fyne.CurrentApp().NewWindow("Picture" + GetLength(true))
 	win.Resize(fyne.NewSize(450, 300))
 	img := <-imageChan
 	image := canvas.NewImageFromReader(img.ImagData, img.Id)
 	image.Resize(fyne.NewSize(450, 300))
-	//toolbar := widget.NewToolbar(
-	//	widget.NewToolbarAction(theme.ViewRefreshIcon(), func() {
-	//		img = <-imageChan
-	//		image = canvas.NewImageFromReader(img.ImagData, img.Id)
-	//		content := container.NewBorder(toolBar(win), nil, nil, nil, image)
-	//		win.SetContent(content)
-	//	}),
-	//	widget.NewToolbarAction(theme.ViewFullScreenIcon(), func() {
-	//		img = <-imageChan
-	//		image = canvas.NewImageFromReader(img.ImagData, img.Id)
-	//		win.SetContent(image)
-	//		win.SetFullScreen(true)
-	//	}),
-	//	widget.NewToolbarAction(theme.ContentCopyIcon(), func() {
-	//		fmt.Println("Copy to Clipboard")
-	//	}),
-	//	widget.NewToolbarAction(theme.DownloadIcon(), func() {
-	//		fmt.Println("Download to Local")
-	//	}),
-	//)
-	//content := container.NewBorder(toolbar, nil, nil, nil, image)
 	win.SetContent(image)
 	win.Show()
 	myWin := new(Window)
@@ -87,15 +69,9 @@ func CapturePic() {
 
 }
 
-func RefreshAll() {
-	for _, r := range captureWindows {
-		r.Refresh()
-	}
-}
-
 func MakeCache() {
 	for true {
-		if len(imageChan) <= 48 {
+		if len(imageChan) <= 72 {
 			body, err := fetcher.Fetch(random)
 			if err != nil {
 				panic(err)
@@ -112,6 +88,13 @@ func MakeCache() {
 	}
 }
 
+func GetLength(b bool) string {
+	if b {
+		return strconv.Itoa(len(captureWindows) + 1)
+	}
+	return strconv.Itoa(len(captureWindows))
+}
+
 func downloadImage(id string) {
 	img := Image{
 		Id:    id,
@@ -125,28 +108,4 @@ func downloadImage(id string) {
 	}
 	img.ImagData = bytes.NewReader(body)
 	imageChan <- img
-}
-
-func toolBar(myWindow fyne.Window) fyne.CanvasObject {
-	toolbar := widget.NewToolbar(
-		widget.NewToolbarAction(theme.ViewRefreshIcon(), func() {
-			img := <-imageChan
-			image := canvas.NewImageFromReader(img.ImagData, img.Id)
-			content := container.NewBorder(toolBar(myWindow), nil, nil, nil, image)
-			myWindow.SetContent(content)
-		}),
-		widget.NewToolbarAction(theme.ViewFullScreenIcon(), func() {
-			img := <-imageChan
-			image := canvas.NewImageFromReader(img.ImagData, img.Id)
-			myWindow.SetContent(image)
-			myWindow.SetFullScreen(true)
-		}),
-		widget.NewToolbarAction(theme.ContentCopyIcon(), func() {
-			fmt.Println("Copy to Clipboard")
-		}),
-		widget.NewToolbarAction(theme.DownloadIcon(), func() {
-			fmt.Println("Download to Local")
-		}),
-	)
-	return toolbar
 }
