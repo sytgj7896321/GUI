@@ -45,7 +45,7 @@ func CloseAllWindows() {
 
 func RefreshAll() {
 	for _, r := range captureWindows {
-		r.Refresh()
+		go r.Refresh()
 	}
 }
 

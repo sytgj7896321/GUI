@@ -5,10 +5,13 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"log"
 	"net/url"
+	"os"
+	"strings"
 )
 
 func main() {
@@ -19,8 +22,7 @@ func main() {
 	mainWindow.SetMaster()
 	mainWindow.Resize(fyne.NewSize(500, 400))
 
-	//mainWindow.SetMainMenu(makeMenu(myApp, mainWindow))
-
+	//Home
 	captureBtn := widget.NewButton("New Capture Window", func() {
 		pics.CapturePic()
 		myApp.SendNotification(&fyne.Notification{
@@ -47,6 +49,27 @@ func main() {
 		})
 		getWindowsNum()
 	})
+
+	//Settings
+	homeDir, _ := os.UserHomeDir()
+	currentPath := widget.NewLabel("PATH: " + homeDir)
+
+	localSavePath := widget.NewButton("Select Local Picture Save Folder", func() {
+		dialog.ShowFolderOpen(func(list fyne.ListableURI, err error) {
+			if err != nil {
+				dialog.ShowError(err, mainWindow)
+				return
+			}
+			if list == nil {
+				log.Println("Cancelled")
+				return
+			}
+			currentPath.Text = "PATH: " + strings.TrimPrefix(list.String(), "file://")
+			currentPath.Refresh()
+		}, mainWindow)
+	})
+
+	//Help
 	bugURL, _ := url.Parse("https://github.com/sytgj7896321/GUI/issues/new")
 
 	tabs := container.NewAppTabs(
@@ -63,7 +86,7 @@ func main() {
 		container.NewTabItemWithIcon(
 			"Settings",
 			theme.SettingsIcon(),
-			container.NewHScroll(container.NewVBox(widget.NewLabel("TODO"))),
+			container.NewHScroll(container.NewVBox(currentPath, localSavePath)),
 		),
 		container.NewTabItemWithIcon(
 			"Help",
