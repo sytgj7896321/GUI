@@ -21,6 +21,11 @@ type Image struct {
 	ImagData io.Reader
 }
 
+type Window struct {
+	Win     fyne.Window
+	Refresh func()
+}
+
 const (
 	random   = "https://wallhaven.cc/random"
 	selector = "#thumbs > section > ul"
@@ -29,34 +34,36 @@ const (
 )
 
 var (
-	ImageChan = make(chan Image, 48)
+	imageChan      = make(chan Image, 96)
+	captureWindows []*Window
 )
 
-func CloseAllWindows(windows []*fyne.Window) {
-	for _, w := range windows {
-		c := *w
+func CloseAllWindows() {
+	for _, w := range captureWindows {
+		c := w.Win
 		c.Close()
 	}
+	captureWindows = captureWindows[len(captureWindows):]
 }
 
-func CapturePic() *fyne.Window {
-	myWindow := fyne.CurrentApp().NewWindow("Picture")
-	myWindow.Resize(fyne.NewSize(450, 300))
-	img := <-ImageChan
+func CapturePic() {
+	win := fyne.CurrentApp().NewWindow("Picture")
+	win.Resize(fyne.NewSize(450, 300))
+	img := <-imageChan
 	image := canvas.NewImageFromReader(img.ImagData, img.Id)
 	image.Resize(fyne.NewSize(450, 300))
 	//toolbar := widget.NewToolbar(
 	//	widget.NewToolbarAction(theme.ViewRefreshIcon(), func() {
-	//		img = <-ImageChan
+	//		img = <-imageChan
 	//		image = canvas.NewImageFromReader(img.ImagData, img.Id)
-	//		content := container.NewBorder(toolBar(myWindow), nil, nil, nil, image)
-	//		myWindow.SetContent(content)
+	//		content := container.NewBorder(toolBar(win), nil, nil, nil, image)
+	//		win.SetContent(content)
 	//	}),
 	//	widget.NewToolbarAction(theme.ViewFullScreenIcon(), func() {
-	//		img = <-ImageChan
+	//		img = <-imageChan
 	//		image = canvas.NewImageFromReader(img.ImagData, img.Id)
-	//		myWindow.SetContent(image)
-	//		myWindow.SetFullScreen(true)
+	//		win.SetContent(image)
+	//		win.SetFullScreen(true)
 	//	}),
 	//	widget.NewToolbarAction(theme.ContentCopyIcon(), func() {
 	//		fmt.Println("Copy to Clipboard")
@@ -66,14 +73,29 @@ func CapturePic() *fyne.Window {
 	//	}),
 	//)
 	//content := container.NewBorder(toolbar, nil, nil, nil, image)
-	myWindow.SetContent(image)
-	myWindow.Show()
-	return &myWindow
+	win.SetContent(image)
+	win.Show()
+	myWin := new(Window)
+	myWin.Win = win
+	myWin.Refresh = func() {
+		img = <-imageChan
+		image = canvas.NewImageFromReader(img.ImagData, img.Id)
+		image.Resize(fyne.NewSize(450, 300))
+		myWin.Win.Canvas().SetContent(image)
+	}
+	captureWindows = append(captureWindows, myWin)
+
+}
+
+func RefreshAll() {
+	for _, r := range captureWindows {
+		r.Refresh()
+	}
 }
 
 func MakeCache() {
 	for true {
-		if len(ImageChan) <= 24 {
+		if len(imageChan) <= 48 {
 			body, err := fetcher.Fetch(random)
 			if err != nil {
 				panic(err)
@@ -102,19 +124,19 @@ func downloadImage(id string) {
 		return
 	}
 	img.ImagData = bytes.NewReader(body)
-	ImageChan <- img
+	imageChan <- img
 }
 
 func toolBar(myWindow fyne.Window) fyne.CanvasObject {
 	toolbar := widget.NewToolbar(
 		widget.NewToolbarAction(theme.ViewRefreshIcon(), func() {
-			img := <-ImageChan
+			img := <-imageChan
 			image := canvas.NewImageFromReader(img.ImagData, img.Id)
 			content := container.NewBorder(toolBar(myWindow), nil, nil, nil, image)
 			myWindow.SetContent(content)
 		}),
 		widget.NewToolbarAction(theme.ViewFullScreenIcon(), func() {
-			img := <-ImageChan
+			img := <-imageChan
 			image := canvas.NewImageFromReader(img.ImagData, img.Id)
 			myWindow.SetContent(image)
 			myWindow.SetFullScreen(true)

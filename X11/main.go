@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/cmd/fyne_settings/settings"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/theme"
@@ -14,15 +13,13 @@ import (
 	"net/url"
 )
 
-var picWindows []*fyne.Window
-
 func main() {
 	go pics.MakeCache()
 	myApp := app.NewWithID("NewApp")
 	logLifecycle()
-	img := <-pics.ImageChan
-	image := canvas.NewImageFromReader(img.ImagData, img.Id)
-	myApp.SetIcon(image.Resource)
+	//img := <-pics.imageChan
+	//image := canvas.NewImageFromReader(img.ImagData, img.Id)
+	//myApp.SetIcon(image.Resource)
 	mainWindow := myApp.NewWindow("Wallpaper Tool")
 	mainWindow.SetMaster()
 	mainWindow.Resize(fyne.NewSize(500, 400))
@@ -31,7 +28,7 @@ func main() {
 
 	captureBtn := widget.NewButton("Open Capture Window", func() {
 		func() {
-			picWindows = append(picWindows, pics.CapturePic())
+			pics.CapturePic()
 			myApp.SendNotification(&fyne.Notification{
 				Title:   "Wallpaper Tool",
 				Content: "New Capture Window Opened",
@@ -40,11 +37,11 @@ func main() {
 	})
 
 	refreshBtn := widget.NewButton("Refresh", func() {
-		fmt.Println("Refreshed")
+		pics.RefreshAll()
 	})
 
 	closeBtn := widget.NewButton("Close All Pictures", func() {
-		pics.CloseAllWindows(picWindows)
+		pics.CloseAllWindows()
 	})
 	bugURL, _ := url.Parse("https://github.com/sytgj7896321/GUI/issues/new")
 
@@ -106,7 +103,7 @@ func makeMenu(app fyne.App, win fyne.Window) *fyne.MainMenu {
 	newItem.ChildMenu = fyne.NewMenu("",
 		fyne.NewMenuItem("Window", func() {
 			go func() {
-				picWindows = append(picWindows, pics.CapturePic())
+				pics.CapturePic()
 				app.SendNotification(&fyne.Notification{
 					Title:   "Wallpaper Tool",
 					Content: "Open Capture Window",
