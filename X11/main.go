@@ -5,30 +5,42 @@ import (
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/cmd/fyne_settings/settings"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"log"
 	"net/url"
 )
 
+var picWindows []*fyne.Window
+
 func main() {
 	go pics.MakeCache()
-
-	var picWindows []fyne.Window
-	myApp := app.New()
+	myApp := app.NewWithID("NewApp")
+	logLifecycle()
 	mainWindow := myApp.NewWindow("Wallpaper Tool")
 	mainWindow.SetMaster()
-	mainWindow.Resize(fyne.NewSize(400, 100))
+	mainWindow.Resize(fyne.NewSize(500, 400))
+
+	mainWindow.SetMainMenu(makeMenu(myApp, mainWindow))
 
 	captureBtn := widget.NewButton("Capture Picture", func() {
-		go func() {
-			picWindows = append(picWindows, pics.CapturePic(myApp))
+		func() {
+			picWindows = append(picWindows, pics.CapturePic())
+			myApp.SendNotification(&fyne.Notification{
+				Title:   "Wallpaper Tool",
+				Content: "Open New Capture Window",
+			})
 		}()
 	})
 
+	refreshBtn := widget.NewButton("Refresh Picture", func() {
+		fmt.Println("Refreshed")
+	})
+
 	closeBtn := widget.NewButton("Close All Pictures", func() {
-		go pics.CloseAllWindows(picWindows)
+		pics.CloseAllWindows(picWindows)
 	})
 	bugURL, _ := url.Parse("https://github.com/sytgj7896321/GUI/issues/new")
 
@@ -36,33 +48,121 @@ func main() {
 		container.NewTabItemWithIcon(
 			"Home",
 			theme.HomeIcon(),
-			container.New(layout.NewGridLayoutWithColumns(1), captureBtn, closeBtn),
+			container.NewHScroll(container.NewVBox(captureBtn, refreshBtn, closeBtn)),
 		),
 		container.NewTabItemWithIcon(
 			"Favourite",
 			theme.ListIcon(),
-			container.New(layout.NewGridLayoutWithColumns(1), widget.NewLabel("TODO")),
+			container.NewHScroll(container.NewVBox(widget.NewLabel("TODO"))),
 		),
 		container.NewTabItemWithIcon(
 			"Settings",
 			theme.SettingsIcon(),
-			container.New(layout.NewGridLayoutWithColumns(1), widget.NewLabel("TODO")),
+			container.NewHScroll(container.NewVBox(widget.NewLabel("TODO"))),
 		),
 		container.NewTabItemWithIcon(
 			"Help",
 			theme.HelpIcon(),
-			container.New(layout.NewGridLayoutWithColumns(1), widget.NewHyperlink("Report a bug", bugURL))),
+			container.NewHScroll(container.NewVBox(widget.NewHyperlink("Report a bug", bugURL))),
+		),
 	)
-	tabs.SetTabLocation(container.TabLocationTop)
-
-	content := container.NewVBox(tabs)
-	mainWindow.SetContent(content)
+	tabs.SetTabLocation(container.TabLocationLeading)
+	mainWindow.SetContent(tabs)
 	mainWindow.Show()
 	myApp.Run()
-	tidyUp()
 }
 
-func tidyUp() {
-	fmt.Println("Thank you for use")
-	fmt.Println("Exited")
+func makeMenu(app fyne.App, win fyne.Window) *fyne.MainMenu {
+	newItem := fyne.NewMenuItem("New", nil)
+	checkedItem := fyne.NewMenuItem("Auto Capture", nil)
+	checkedItem.Checked = true
+	checkedItem.Action = func() {
+		checkedItem.Checked = !checkedItem.Checked
+		if checkedItem.Checked {
+			log.Println("Auto Capture On")
+		} else {
+			log.Println("Auto Capture Off")
+		}
+	}
+	newItem.ChildMenu = fyne.NewMenu("",
+		fyne.NewMenuItem("Window", func() {
+			go func() {
+				picWindows = append(picWindows, pics.CapturePic())
+				app.SendNotification(&fyne.Notification{
+					Title:   "Wallpaper Tool",
+					Content: "Open Capture Window",
+				})
+			}()
+		}),
+	)
+	settingsItem := fyne.NewMenuItem("Settings", func() {
+		w := app.NewWindow("Fyne Settings")
+		w.SetContent(settings.NewSettings().LoadAppearanceScreen(w))
+		w.Resize(fyne.NewSize(480, 480))
+		w.Show()
+	})
+
+	cutItem := fyne.NewMenuItem("Cut", func() {
+		shortcutFocused(&fyne.ShortcutCut{
+			Clipboard: win.Clipboard(),
+		}, win)
+	})
+	copyItem := fyne.NewMenuItem("Copy", func() {
+		shortcutFocused(&fyne.ShortcutCopy{
+			Clipboard: win.Clipboard(),
+		}, win)
+	})
+	pasteItem := fyne.NewMenuItem("Paste", func() {
+		shortcutFocused(&fyne.ShortcutPaste{
+			Clipboard: win.Clipboard(),
+		}, win)
+	})
+	findItem := fyne.NewMenuItem("Find", func() { fmt.Println("Menu Find") })
+
+	helpMenu := fyne.NewMenu("Help",
+		fyne.NewMenuItem("Documentation", func() {
+			u, _ := url.Parse("https://developer.fyne.io")
+			_ = app.OpenURL(u)
+		}),
+		fyne.NewMenuItem("Support", func() {
+			u, _ := url.Parse("https://fyne.io/support/")
+			_ = app.OpenURL(u)
+		}),
+		fyne.NewMenuItemSeparator(),
+		fyne.NewMenuItem("Sponsor", func() {
+			u, _ := url.Parse("https://fyne.io/sponsor/")
+			_ = app.OpenURL(u)
+		}))
+
+	// app quit item will be appended to our first (File) menu
+	file := fyne.NewMenu("Home", newItem, checkedItem)
+	if !fyne.CurrentDevice().IsMobile() {
+		file.Items = append(file.Items, fyne.NewMenuItemSeparator(), settingsItem)
+	}
+	return fyne.NewMainMenu(
+		file,
+		fyne.NewMenu("Edit", cutItem, copyItem, pasteItem, fyne.NewMenuItemSeparator(), findItem),
+		helpMenu,
+	)
+}
+
+func logLifecycle() {
+	fyne.CurrentApp().Lifecycle().SetOnStarted(func() {
+		log.Println("Lifecycle: Started")
+	})
+	fyne.CurrentApp().Lifecycle().SetOnStopped(func() {
+		log.Println("Lifecycle: Stopped")
+	})
+	fyne.CurrentApp().Lifecycle().SetOnEnteredForeground(func() {
+		log.Println("Lifecycle: Entered Foreground")
+	})
+	fyne.CurrentApp().Lifecycle().SetOnExitedForeground(func() {
+		log.Println("Lifecycle: Exited Foreground")
+	})
+}
+
+func shortcutFocused(s fyne.Shortcut, w fyne.Window) {
+	if focused, ok := w.Canvas().Focused().(fyne.Shortcutable); ok {
+		focused.TypedShortcut(s)
+	}
 }

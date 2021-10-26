@@ -32,24 +32,43 @@ var (
 	imageChan = make(chan Image, 48)
 )
 
-func CloseAllWindows(windows []fyne.Window) {
+func CloseAllWindows(windows []*fyne.Window) {
 	for _, w := range windows {
-		w.Close()
+		c := *w
+		c.Close()
 	}
 }
 
-func CapturePic(app fyne.App) fyne.Window {
+func CapturePic() *fyne.Window {
+	myWindow := fyne.CurrentApp().NewWindow("Picture")
+	myWindow.Resize(fyne.NewSize(450, 300))
 	img := <-imageChan
-	myWindow := app.NewWindow("Picture")
-	myWindow.Resize(fyne.NewSize(450, 350))
 	image := canvas.NewImageFromReader(img.ImagData, img.Id)
-
-	toolbar := toolBar(myWindow)
-	content := container.NewBorder(toolbar, nil, nil, nil, image)
-	myWindow.SetContent(content)
+	image.Resize(fyne.NewSize(450, 300))
+	//toolbar := widget.NewToolbar(
+	//	widget.NewToolbarAction(theme.ViewRefreshIcon(), func() {
+	//		img = <-imageChan
+	//		image = canvas.NewImageFromReader(img.ImagData, img.Id)
+	//		content := container.NewBorder(toolBar(myWindow), nil, nil, nil, image)
+	//		myWindow.SetContent(content)
+	//	}),
+	//	widget.NewToolbarAction(theme.ViewFullScreenIcon(), func() {
+	//		img = <-imageChan
+	//		image = canvas.NewImageFromReader(img.ImagData, img.Id)
+	//		myWindow.SetContent(image)
+	//		myWindow.SetFullScreen(true)
+	//	}),
+	//	widget.NewToolbarAction(theme.ContentCopyIcon(), func() {
+	//		fmt.Println("Copy to Clipboard")
+	//	}),
+	//	widget.NewToolbarAction(theme.DownloadIcon(), func() {
+	//		fmt.Println("Download to Local")
+	//	}),
+	//)
+	//content := container.NewBorder(toolbar, nil, nil, nil, image)
+	myWindow.SetContent(image)
 	myWindow.Show()
-
-	return myWindow
+	return &myWindow
 }
 
 func MakeCache() {
@@ -95,6 +114,9 @@ func toolBar(myWindow fyne.Window) fyne.CanvasObject {
 			myWindow.SetContent(content)
 		}),
 		widget.NewToolbarAction(theme.ViewFullScreenIcon(), func() {
+			img := <-imageChan
+			image := canvas.NewImageFromReader(img.ImagData, img.Id)
+			myWindow.SetContent(image)
 			myWindow.SetFullScreen(true)
 		}),
 		widget.NewToolbarAction(theme.ContentCopyIcon(), func() {
