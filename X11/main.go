@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/cmd/fyne_settings/settings"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/theme"
@@ -19,23 +20,26 @@ func main() {
 	go pics.MakeCache()
 	myApp := app.NewWithID("NewApp")
 	logLifecycle()
+	img := <-pics.ImageChan
+	image := canvas.NewImageFromReader(img.ImagData, img.Id)
+	myApp.SetIcon(image.Resource)
 	mainWindow := myApp.NewWindow("Wallpaper Tool")
 	mainWindow.SetMaster()
 	mainWindow.Resize(fyne.NewSize(500, 400))
 
 	mainWindow.SetMainMenu(makeMenu(myApp, mainWindow))
 
-	captureBtn := widget.NewButton("Capture Picture", func() {
+	captureBtn := widget.NewButton("Open Capture Window", func() {
 		func() {
 			picWindows = append(picWindows, pics.CapturePic())
 			myApp.SendNotification(&fyne.Notification{
 				Title:   "Wallpaper Tool",
-				Content: "Open New Capture Window",
+				Content: "New Capture Window Opened",
 			})
 		}()
 	})
 
-	refreshBtn := widget.NewButton("Refresh Picture", func() {
+	refreshBtn := widget.NewButton("Refresh", func() {
 		fmt.Println("Refreshed")
 	})
 
@@ -70,6 +74,21 @@ func main() {
 	mainWindow.SetContent(tabs)
 	mainWindow.Show()
 	myApp.Run()
+}
+
+func logLifecycle() {
+	fyne.CurrentApp().Lifecycle().SetOnStarted(func() {
+		log.Println("Lifecycle: Started")
+	})
+	fyne.CurrentApp().Lifecycle().SetOnStopped(func() {
+		log.Println("Lifecycle: Stopped")
+	})
+	fyne.CurrentApp().Lifecycle().SetOnEnteredForeground(func() {
+		log.Println("Lifecycle: Entered Foreground")
+	})
+	fyne.CurrentApp().Lifecycle().SetOnExitedForeground(func() {
+		log.Println("Lifecycle: Exited Foreground")
+	})
 }
 
 func makeMenu(app fyne.App, win fyne.Window) *fyne.MainMenu {
@@ -144,21 +163,6 @@ func makeMenu(app fyne.App, win fyne.Window) *fyne.MainMenu {
 		fyne.NewMenu("Edit", cutItem, copyItem, pasteItem, fyne.NewMenuItemSeparator(), findItem),
 		helpMenu,
 	)
-}
-
-func logLifecycle() {
-	fyne.CurrentApp().Lifecycle().SetOnStarted(func() {
-		log.Println("Lifecycle: Started")
-	})
-	fyne.CurrentApp().Lifecycle().SetOnStopped(func() {
-		log.Println("Lifecycle: Stopped")
-	})
-	fyne.CurrentApp().Lifecycle().SetOnEnteredForeground(func() {
-		log.Println("Lifecycle: Entered Foreground")
-	})
-	fyne.CurrentApp().Lifecycle().SetOnExitedForeground(func() {
-		log.Println("Lifecycle: Exited Foreground")
-	})
 }
 
 func shortcutFocused(s fyne.Shortcut, w fyne.Window) {

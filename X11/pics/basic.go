@@ -29,7 +29,7 @@ const (
 )
 
 var (
-	imageChan = make(chan Image, 48)
+	ImageChan = make(chan Image, 48)
 )
 
 func CloseAllWindows(windows []*fyne.Window) {
@@ -42,18 +42,18 @@ func CloseAllWindows(windows []*fyne.Window) {
 func CapturePic() *fyne.Window {
 	myWindow := fyne.CurrentApp().NewWindow("Picture")
 	myWindow.Resize(fyne.NewSize(450, 300))
-	img := <-imageChan
+	img := <-ImageChan
 	image := canvas.NewImageFromReader(img.ImagData, img.Id)
 	image.Resize(fyne.NewSize(450, 300))
 	//toolbar := widget.NewToolbar(
 	//	widget.NewToolbarAction(theme.ViewRefreshIcon(), func() {
-	//		img = <-imageChan
+	//		img = <-ImageChan
 	//		image = canvas.NewImageFromReader(img.ImagData, img.Id)
 	//		content := container.NewBorder(toolBar(myWindow), nil, nil, nil, image)
 	//		myWindow.SetContent(content)
 	//	}),
 	//	widget.NewToolbarAction(theme.ViewFullScreenIcon(), func() {
-	//		img = <-imageChan
+	//		img = <-ImageChan
 	//		image = canvas.NewImageFromReader(img.ImagData, img.Id)
 	//		myWindow.SetContent(image)
 	//		myWindow.SetFullScreen(true)
@@ -73,7 +73,7 @@ func CapturePic() *fyne.Window {
 
 func MakeCache() {
 	for true {
-		if len(imageChan) <= 24 {
+		if len(ImageChan) <= 24 {
 			body, err := fetcher.Fetch(random)
 			if err != nil {
 				panic(err)
@@ -102,19 +102,19 @@ func downloadImage(id string) {
 		return
 	}
 	img.ImagData = bytes.NewReader(body)
-	imageChan <- img
+	ImageChan <- img
 }
 
 func toolBar(myWindow fyne.Window) fyne.CanvasObject {
 	toolbar := widget.NewToolbar(
 		widget.NewToolbarAction(theme.ViewRefreshIcon(), func() {
-			img := <-imageChan
+			img := <-ImageChan
 			image := canvas.NewImageFromReader(img.ImagData, img.Id)
 			content := container.NewBorder(toolBar(myWindow), nil, nil, nil, image)
 			myWindow.SetContent(content)
 		}),
 		widget.NewToolbarAction(theme.ViewFullScreenIcon(), func() {
-			img := <-imageChan
+			img := <-ImageChan
 			image := canvas.NewImageFromReader(img.ImagData, img.Id)
 			myWindow.SetContent(image)
 			myWindow.SetFullScreen(true)
