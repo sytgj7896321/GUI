@@ -5,6 +5,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
@@ -23,7 +24,7 @@ func main() {
 	logLifecycle()
 	mainWindow := myApp.NewWindow("Wallpaper Tool")
 	mainWindow.SetMaster()
-	mainWindow.Resize(fyne.NewSize(500, 400))
+	mainWindow.Resize(fyne.NewSize(600, 400))
 
 	//Home
 	captureBtn := widget.NewButton("New Capture Window", func() {
@@ -58,33 +59,37 @@ func main() {
 	})
 
 	//Settings
-	autoSave := widget.NewCheck("Auto Save Original Pictures to Local Directory", func(bool) {
-
-	})
-	autoSave.Disable()
+	tFloat := 5.0
+	tData := binding.BindFloat(&tFloat)
+	tLabel := widget.NewLabelWithData(binding.FloatToStringWithFormat(tData, "Refresh Interval: %0.0fs"))
+	tSlide := widget.NewSliderWithData(5, 120, tData)
 
 	autoRefresh := widget.NewCheck("Auto Refresh", func(value bool) {
 		if value {
 			log.Println("Auto Refresh On")
 			autoFlag = true
-			autoSave.Enable()
-			autoSave.Refresh()
-			go refreshTick(5 * time.Second)
+			tSlide.Hide()
+			go refreshTick(tData)
 		} else {
 			log.Println("Auto Refresh Off")
 			autoFlag = false
-			autoSave.Disable()
-			autoSave.Refresh()
+			tSlide.Show()
 		}
 	})
 
-	currentPath := widget.NewLabel("Directory: ")
+	autoSave := widget.NewCheck("Auto Save Original Pictures to Local Directory After Refresh", func(bool) {
+		//TODO Save Pictures to Local
+		log.Println("TODO")
+	})
+	autoSave.Enable()
+
+	currentPath := widget.NewLabel("Local Save Directory: ")
 	homeDir, _ := os.UserHomeDir()
 	err := createPath(homeDir + "/Pics")
 	if err != nil {
 		log.Println("Can not create directory in Home Directory, please choose a directory by yourself")
 	} else {
-		currentPath.Text = "Directory: " + homeDir + "/Pics"
+		currentPath.Text = "Local Save Directory: " + homeDir + "/Pics"
 		currentPath.Refresh()
 	}
 	localSavePath := widget.NewButton("Select Local Save Directory", func() {
@@ -97,7 +102,7 @@ func main() {
 				log.Println("Cancelled")
 				return
 			}
-			currentPath.Text = "Directory: " + strings.TrimPrefix(list.String(), "file://")
+			currentPath.Text = "Local Save Directory: " + strings.TrimPrefix(list.String(), "file://")
 			currentPath.Refresh()
 		}, mainWindow)
 	})
@@ -120,7 +125,7 @@ func main() {
 		container.NewTabItemWithIcon(
 			"Settings",
 			theme.SettingsIcon(),
-			container.NewHScroll(container.NewVBox(autoRefresh, autoSave, currentPath, localSavePath)),
+			container.NewHScroll(container.NewVBox(tLabel, tSlide, autoRefresh, autoSave, currentPath, localSavePath)),
 		),
 		container.NewTabItemWithIcon(
 			"Help",
@@ -169,8 +174,12 @@ func createPath(path string) error {
 	return err
 }
 
-func refreshTick(t time.Duration) {
-	for range time.Tick(t) {
+func refreshTick(t binding.ExternalFloat) {
+	for range time.Tick(func(binding.ExternalFloat) time.Duration {
+		_ = t.Reload()
+		tick, _ := t.Get()
+		return time.Duration(tick) * time.Second
+	}(t)) {
 		if autoFlag {
 			pics.RefreshAll()
 		} else {
