@@ -31,30 +31,30 @@ const (
 )
 
 var (
-	imageChan      = make(chan Image, 144)
-	captureWindows []*Window
+	imageChan      = make(chan Image, 96)
+	CaptureWindows []*Window
 )
 
 func CloseAllWindows() {
-	for _, w := range captureWindows {
+	for _, w := range CaptureWindows {
 		c := w.Win
 		c.Close()
 	}
-	captureWindows = captureWindows[len(captureWindows):]
+	CaptureWindows = CaptureWindows[len(CaptureWindows):]
 }
 
 func RefreshAll() {
-	for _, r := range captureWindows {
+	for _, r := range CaptureWindows {
 		go r.Refresh()
 	}
 }
 
 func CapturePic() {
 	win := fyne.CurrentApp().NewWindow("Picture" + GetLength(true))
-	win.Resize(fyne.NewSize(450, 300))
+	win.Resize(fyne.NewSize(300, 200))
 	img := <-imageChan
 	image := canvas.NewImageFromReader(img.ImagData, img.Id)
-	image.Resize(fyne.NewSize(450, 300))
+	image.Resize(fyne.NewSize(300, 200))
 	win.SetContent(image)
 	win.Show()
 	myWin := new(Window)
@@ -62,16 +62,16 @@ func CapturePic() {
 	myWin.Refresh = func() {
 		img = <-imageChan
 		image = canvas.NewImageFromReader(img.ImagData, img.Id)
-		image.Resize(fyne.NewSize(450, 300))
+		image.Resize(fyne.NewSize(300, 200))
 		myWin.Win.Canvas().SetContent(image)
 	}
-	captureWindows = append(captureWindows, myWin)
+	CaptureWindows = append(CaptureWindows, myWin)
 
 }
 
 func MakeCache() {
 	for true {
-		if len(imageChan) <= 72 {
+		if len(imageChan) <= 48 {
 			body, err := fetcher.Fetch(random)
 			if err != nil {
 				panic(err)
@@ -90,9 +90,9 @@ func MakeCache() {
 
 func GetLength(b bool) string {
 	if b {
-		return strconv.Itoa(len(captureWindows) + 1)
+		return strconv.Itoa(len(CaptureWindows) + 1)
 	}
-	return strconv.Itoa(len(captureWindows))
+	return strconv.Itoa(len(CaptureWindows))
 }
 
 func downloadImage(id string) {

@@ -12,7 +12,10 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
+
+var autoFlag bool
 
 func main() {
 	go pics.MakeCache()
@@ -24,12 +27,16 @@ func main() {
 
 	//Home
 	captureBtn := widget.NewButton("New Capture Window", func() {
-		pics.CapturePic()
-		myApp.SendNotification(&fyne.Notification{
-			Title:   "Wallpaper Tool",
-			Content: "New Capture Window Opened",
-		})
-		getWindowsNum()
+		if len(pics.CaptureWindows) < 24 {
+			pics.CapturePic()
+			myApp.SendNotification(&fyne.Notification{
+				Title:   "Wallpaper Tool",
+				Content: "New Capture Window Opened",
+			})
+			getWindowsNum()
+		} else {
+			dialog.ShowInformation("Warning", "Too Much Windows Opened", mainWindow)
+		}
 	})
 
 	refreshBtn := widget.NewButton("Refresh", func() {
@@ -51,10 +58,36 @@ func main() {
 	})
 
 	//Settings
-	homeDir, _ := os.UserHomeDir()
-	currentPath := widget.NewLabel("PATH: " + homeDir)
+	autoSave := widget.NewCheck("Auto Save Original Pictures to Local Directory", func(bool) {
 
-	localSavePath := widget.NewButton("Select Local Picture Save Folder", func() {
+	})
+	autoSave.Disable()
+
+	autoRefresh := widget.NewCheck("Auto Refresh", func(value bool) {
+		if value {
+			log.Println("Auto Refresh On")
+			autoFlag = true
+			autoSave.Enable()
+			autoSave.Refresh()
+			go refreshTick(5 * time.Second)
+		} else {
+			log.Println("Auto Refresh Off")
+			autoFlag = false
+			autoSave.Disable()
+			autoSave.Refresh()
+		}
+	})
+
+	currentPath := widget.NewLabel("Directory: ")
+	homeDir, _ := os.UserHomeDir()
+	err := createPath(homeDir + "/Pics")
+	if err != nil {
+		log.Println("Can not create directory in Home Directory, please choose a directory by yourself")
+	} else {
+		currentPath.Text = "Directory: " + homeDir + "/Pics"
+		currentPath.Refresh()
+	}
+	localSavePath := widget.NewButton("Select Local Save Directory", func() {
 		dialog.ShowFolderOpen(func(list fyne.ListableURI, err error) {
 			if err != nil {
 				dialog.ShowError(err, mainWindow)
@@ -64,7 +97,7 @@ func main() {
 				log.Println("Cancelled")
 				return
 			}
-			currentPath.Text = "PATH: " + strings.TrimPrefix(list.String(), "file://")
+			currentPath.Text = "Directory: " + strings.TrimPrefix(list.String(), "file://")
 			currentPath.Refresh()
 		}, mainWindow)
 	})
@@ -72,6 +105,7 @@ func main() {
 	//Help
 	bugURL, _ := url.Parse("https://github.com/sytgj7896321/GUI/issues/new")
 
+	//Create Tabs
 	tabs := container.NewAppTabs(
 		container.NewTabItemWithIcon(
 			"Home",
@@ -79,14 +113,14 @@ func main() {
 			container.NewHScroll(container.NewVBox(captureBtn, refreshBtn, closeBtn)),
 		),
 		container.NewTabItemWithIcon(
-			"Favourite",
-			theme.ListIcon(),
+			"Tasks",
+			theme.DownloadIcon(),
 			container.NewHScroll(container.NewVBox(widget.NewLabel("TODO"))),
 		),
 		container.NewTabItemWithIcon(
 			"Settings",
 			theme.SettingsIcon(),
-			container.NewHScroll(container.NewVBox(currentPath, localSavePath)),
+			container.NewHScroll(container.NewVBox(autoRefresh, autoSave, currentPath, localSavePath)),
 		),
 		container.NewTabItemWithIcon(
 			"Help",
@@ -117,4 +151,30 @@ func logLifecycle() {
 
 func getWindowsNum() {
 	log.Println("Total Windows Opened: " + pics.GetLength(false))
+}
+
+func createPath(path string) error {
+	_, err := os.Stat(path)
+	if err == nil {
+		return nil
+	}
+	if os.IsNotExist(err) {
+		err := os.Mkdir(path, 0755)
+		if err != nil {
+			return err
+		}
+		log.Println("Directory '" + path + "' created")
+		return nil
+	}
+	return err
+}
+
+func refreshTick(t time.Duration) {
+	for range time.Tick(t) {
+		if autoFlag {
+			pics.RefreshAll()
+		} else {
+			break
+		}
+	}
 }

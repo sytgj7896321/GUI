@@ -5,29 +5,23 @@ import (
 
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
 
 func main() {
 	myApp := app.New()
-	myWindow := myApp.NewWindow("Toolbar Widget")
+	myWindow := myApp.NewWindow("Choice Widgets")
 
-	toolbar := widget.NewToolbar(
-		widget.NewToolbarAction(theme.DocumentCreateIcon(), func() {
-			log.Println("New document")
-		}),
-		widget.NewToolbarSeparator(),
-		widget.NewToolbarAction(theme.ContentCutIcon(), func() {}),
-		widget.NewToolbarAction(theme.ContentCopyIcon(), func() {}),
-		widget.NewToolbarAction(theme.ContentPasteIcon(), func() {}),
-		widget.NewToolbarSpacer(),
-		widget.NewToolbarAction(theme.HelpIcon(), func() {
-			log.Println("Display help")
-		}),
-	)
+	check := widget.NewCheck("Optional", func(value bool) {
+		log.Println("Check set to", value)
+	})
+	radio := widget.NewRadioGroup([]string{"Option 1", "Option 2"}, func(value string) {
+		log.Println("Radio set to", value)
+	})
+	combo := widget.NewSelect([]string{"Option 1", "Option 2"}, func(value string) {
+		log.Println("Select set to", value)
+	})
 
-	content := container.NewBorder(toolbar, nil, nil, nil, widget.NewLabel("Content"))
-	myWindow.SetContent(content)
+	myWindow.SetContent(container.NewVBox(check, radio, combo))
 	myWindow.ShowAndRun()
 }
