@@ -36,7 +36,22 @@ func main() {
 			})
 			getWindowsNum()
 		} else {
-			dialog.ShowInformation("Warning", "Too Much Windows Opened", mainWindow)
+			warn := dialog.NewConfirm("Warning", "Too much windows opened\nAre you still want to add another one?(Not recommended)", func(b bool) {
+				if b {
+					pics.CapturePic()
+					myApp.SendNotification(&fyne.Notification{
+						Title:   "Wallpaper Tool",
+						Content: "New Capture Window Opened",
+					})
+					getWindowsNum()
+				} else {
+					log.Println("Cancel Open New Window")
+					getWindowsNum()
+				}
+			}, mainWindow)
+			warn.SetDismissText("NO")
+			warn.SetConfirmText("YES")
+			warn.Show()
 		}
 	})
 
@@ -63,6 +78,7 @@ func main() {
 	tData := binding.BindFloat(&tFloat)
 	tLabel := widget.NewLabelWithData(binding.FloatToStringWithFormat(tData, "Refresh Interval: %0.0fs"))
 	tSlide := widget.NewSliderWithData(5, 120, tData)
+	tSlide.SetValue(30)
 
 	autoRefresh := widget.NewCheck("Auto Refresh", func(value bool) {
 		if value {
@@ -77,9 +93,37 @@ func main() {
 		}
 	})
 
-	autoSave := widget.NewCheck("Auto Save Original Pictures to Local Directory After Refresh", func(bool) {
-		//TODO Save Pictures to Local
-		log.Println("TODO")
+	f := 0.1
+	data := binding.BindFloat(&f)
+	//bar := widget.NewProgressBarWithData(data)
+
+	downloadList := binding.BindFloatList(&[]float64{0.6, 0.7})
+	list := widget.NewListWithData(downloadList,
+		func() fyne.CanvasObject {
+			return container.NewBorder(nil, nil, nil, widget.NewButton("+", nil),
+				widget.NewLabel("item x.y"))
+		},
+		func(item binding.DataItem, obj fyne.CanvasObject) {
+			f := item.(binding.Float)
+			text := obj.(*fyne.Container).Objects[0].(*widget.Label)
+			text.Bind(binding.FloatToStringWithFormat(f, "pic %0.1f"))
+
+			btn := obj.(*fyne.Container).Objects[1].(*widget.Button)
+			btn.OnTapped = func() {
+				val, _ := f.Get()
+				_ = f.Set(val + 1)
+			}
+		})
+
+	autoSave := widget.NewCheck("Auto Save Original Pictures to Local Directory After Refresh", func(value bool) {
+		if value {
+			f = f + 0.1
+			data.Reload()
+		} else {
+			f = f + 0.1
+			data.Reload()
+		}
+
 	})
 	autoSave.Enable()
 
@@ -115,22 +159,33 @@ func main() {
 		container.NewTabItemWithIcon(
 			"Home",
 			theme.HomeIcon(),
-			container.NewHScroll(container.NewVBox(captureBtn, refreshBtn, closeBtn)),
+			container.NewVBox(
+				captureBtn,
+				refreshBtn,
+				closeBtn),
 		),
 		container.NewTabItemWithIcon(
 			"Tasks",
 			theme.DownloadIcon(),
-			container.NewHScroll(container.NewVBox(widget.NewLabel("TODO"))),
+			container.NewGridWithColumns(
+				1,
+				list),
 		),
 		container.NewTabItemWithIcon(
 			"Settings",
 			theme.SettingsIcon(),
-			container.NewHScroll(container.NewVBox(tLabel, tSlide, autoRefresh, autoSave, currentPath, localSavePath)),
+			container.NewVBox(
+				container.NewGridWithColumns(2, tLabel, tSlide),
+				autoRefresh,
+				autoSave,
+				currentPath,
+				localSavePath),
 		),
 		container.NewTabItemWithIcon(
 			"Help",
 			theme.HelpIcon(),
-			container.NewHScroll(container.NewVBox(widget.NewHyperlink("Report a bug", bugURL))),
+			container.NewVBox(
+				widget.NewHyperlink("Report a bug", bugURL)),
 		),
 	)
 	tabs.SetTabLocation(container.TabLocationLeading)
@@ -155,7 +210,7 @@ func logLifecycle() {
 }
 
 func getWindowsNum() {
-	log.Println("Total Windows Opened: " + pics.GetLength(false))
+	log.Println("Total Windows Opened: " + pics.GetLength())
 }
 
 func createPath(path string) error {

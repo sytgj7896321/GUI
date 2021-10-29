@@ -19,8 +19,10 @@ type Image struct {
 }
 
 type Window struct {
-	Win     fyne.Window
-	Refresh func()
+	Win          fyne.Window
+	Refresh      func()
+	OriginalLink string
+	Position     int
 }
 
 const (
@@ -50,7 +52,7 @@ func RefreshAll() {
 }
 
 func CapturePic() {
-	win := fyne.CurrentApp().NewWindow("Picture" + GetLength(true))
+	win := fyne.CurrentApp().NewWindow("Picture")
 	win.Resize(fyne.NewSize(300, 200))
 	img := <-imageChan
 	image := canvas.NewImageFromReader(img.ImagData, img.Id)
@@ -66,7 +68,14 @@ func CapturePic() {
 		myWin.Win.Canvas().SetContent(image)
 	}
 	CaptureWindows = append(CaptureWindows, myWin)
-
+	myWin.Position = len(CaptureWindows) - 1
+	win.SetCloseIntercept(func() {
+		win.Close()
+		for _, w := range CaptureWindows[myWin.Position+1:] {
+			w.Position--
+		}
+		CaptureWindows = append(CaptureWindows[:myWin.Position], CaptureWindows[myWin.Position+1:]...)
+	})
 }
 
 func MakeCache() {
@@ -88,10 +97,7 @@ func MakeCache() {
 	}
 }
 
-func GetLength(b bool) string {
-	if b {
-		return strconv.Itoa(len(CaptureWindows) + 1)
-	}
+func GetLength() string {
 	return strconv.Itoa(len(CaptureWindows))
 }
 
@@ -101,7 +107,6 @@ func downloadImage(id string) {
 		Small: small + string([]byte(id)[:2]) + "/" + id + ".jpg",
 		Full:  full + string([]byte(id)[:2]) + "/wallhaven-" + id + ".jpg",
 	}
-	//TODO ProgressBar
 	body, err := fetcher.Fetch(img.Small)
 	if err != nil {
 		return
