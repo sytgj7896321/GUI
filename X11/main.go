@@ -2,6 +2,7 @@ package main
 
 import (
 	"GUI/X11/pics"
+	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
@@ -73,6 +74,28 @@ func main() {
 		getWindowsNum()
 	})
 
+	//Tasks
+	tasks := []float64{0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6}
+	downloadList := binding.BindFloatList(&tasks)
+	list := widget.NewListWithData(
+		downloadList,
+		func() fyne.CanvasObject {
+			label := widget.NewLabel("Picture")
+			bar := widget.NewProgressBar()
+			menu := widget.NewMenu(
+				fyne.NewMenu("",
+					//TODO
+					fyne.NewMenuItem("remove", func() { fmt.Println("TODO") }),
+					fyne.NewMenuItem("retry", func() { fmt.Println("TODO") }),
+				))
+			return container.NewBorder(nil, nil, label, menu, bar)
+		},
+		func(item binding.DataItem, obj fyne.CanvasObject) {
+			f := item.(binding.Float)
+			bar := obj.(*fyne.Container).Objects[0].(*widget.ProgressBar)
+			bar.Bind(f)
+		})
+
 	//Settings
 	tFloat := 5.0
 	tData := binding.BindFloat(&tFloat)
@@ -80,52 +103,25 @@ func main() {
 	tSlide := widget.NewSliderWithData(5, 120, tData)
 	tSlide.SetValue(30)
 
+	autoSave := widget.NewCheck("Auto Save Original Pictures to Local Directory After Refresh", func(value bool) {
+		//TODO
+	})
+	autoSave.Disable()
+
 	autoRefresh := widget.NewCheck("Auto Refresh", func(value bool) {
 		if value {
 			log.Println("Auto Refresh On")
 			autoFlag = true
 			tSlide.Hide()
+			autoSave.Enable()
 			go refreshTick(tData)
 		} else {
 			log.Println("Auto Refresh Off")
 			autoFlag = false
 			tSlide.Show()
+			autoSave.Disable()
 		}
 	})
-
-	f := 0.1
-	data := binding.BindFloat(&f)
-	//bar := widget.NewProgressBarWithData(data)
-
-	downloadList := binding.BindFloatList(&[]float64{0.6, 0.7})
-	list := widget.NewListWithData(downloadList,
-		func() fyne.CanvasObject {
-			return container.NewBorder(nil, nil, nil, widget.NewButton("+", nil),
-				widget.NewLabel("item x.y"))
-		},
-		func(item binding.DataItem, obj fyne.CanvasObject) {
-			f := item.(binding.Float)
-			text := obj.(*fyne.Container).Objects[0].(*widget.Label)
-			text.Bind(binding.FloatToStringWithFormat(f, "pic %0.1f"))
-
-			btn := obj.(*fyne.Container).Objects[1].(*widget.Button)
-			btn.OnTapped = func() {
-				val, _ := f.Get()
-				_ = f.Set(val + 1)
-			}
-		})
-
-	autoSave := widget.NewCheck("Auto Save Original Pictures to Local Directory After Refresh", func(value bool) {
-		if value {
-			f = f + 0.1
-			data.Reload()
-		} else {
-			f = f + 0.1
-			data.Reload()
-		}
-
-	})
-	autoSave.Enable()
 
 	currentPath := widget.NewLabel("Local Save Directory: ")
 	homeDir, _ := os.UserHomeDir()
@@ -165,7 +161,7 @@ func main() {
 				closeBtn),
 		),
 		container.NewTabItemWithIcon(
-			"Tasks",
+			"Download",
 			theme.DownloadIcon(),
 			container.NewGridWithColumns(
 				1,
@@ -196,16 +192,16 @@ func main() {
 
 func logLifecycle() {
 	fyne.CurrentApp().Lifecycle().SetOnStarted(func() {
-		log.Println("Lifecycle: Started")
+		log.Println("Wallpaper Tool: Started")
 	})
 	fyne.CurrentApp().Lifecycle().SetOnStopped(func() {
-		log.Println("Lifecycle: Stopped")
+		log.Println("Wallpaper Tool: Stopped")
 	})
 	fyne.CurrentApp().Lifecycle().SetOnEnteredForeground(func() {
-		log.Println("Lifecycle: Entered Foreground")
+		log.Println("Wallpaper Tool: Entered Foreground")
 	})
 	fyne.CurrentApp().Lifecycle().SetOnExitedForeground(func() {
-		log.Println("Lifecycle: Exited Foreground")
+		log.Println("Wallpaper Tool: Exited Foreground")
 	})
 }
 
