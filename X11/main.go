@@ -104,22 +104,23 @@ func main() {
 	tSlide.SetValue(30)
 
 	autoSave := widget.NewCheck("Auto Save Original Pictures to Local Directory After Refresh", func(value bool) {
-		//TODO
+		if value {
+			pics.AutoSaveFlag = true
+		} else {
+			pics.AutoSaveFlag = false
+		}
 	})
-	autoSave.Disable()
 
 	autoRefresh := widget.NewCheck("Auto Refresh", func(value bool) {
 		if value {
 			log.Println("Auto Refresh On")
 			autoFlag = true
 			tSlide.Hide()
-			autoSave.Enable()
 			go refreshTick(tData)
 		} else {
 			log.Println("Auto Refresh Off")
 			autoFlag = false
 			tSlide.Show()
-			autoSave.Disable()
 		}
 	})
 

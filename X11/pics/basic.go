@@ -7,6 +7,7 @@ import (
 	"fyne.io/fyne/v2/canvas"
 	"github.com/PuerkitoBio/goquery"
 	"io"
+	"log"
 	"strconv"
 	"strings"
 )
@@ -19,10 +20,10 @@ type Image struct {
 }
 
 type Window struct {
-	Win          fyne.Window
-	Refresh      func()
-	OriginalLink string
-	Position     int
+	Win      fyne.Window
+	Refresh  func()
+	Position int
+	FullLink string
 }
 
 const (
@@ -33,8 +34,9 @@ const (
 )
 
 var (
-	imageChan      = make(chan Image, 96)
+	imageChan      = make(chan *Image, 96)
 	CaptureWindows []*Window
+	AutoSaveFlag   = false
 )
 
 func CloseAllWindows() {
@@ -61,8 +63,13 @@ func CapturePic() {
 	win.Show()
 	myWin := new(Window)
 	myWin.Win = win
+	myWin.FullLink = img.Full
 	myWin.Refresh = func() {
+		if AutoSaveFlag {
+
+		}
 		img = <-imageChan
+		myWin.FullLink = img.Full
 		image = canvas.NewImageFromReader(img.ImagData, img.Id)
 		image.Resize(fyne.NewSize(300, 200))
 		myWin.Win.Canvas().SetContent(image)
@@ -91,7 +98,7 @@ func MakeCache() {
 				return e
 			})
 			for i := range idList {
-				go downloadImage(idList[i])
+				go downloadSmallImage(idList[i])
 			}
 		}
 	}
@@ -101,15 +108,14 @@ func GetLength() string {
 	return strconv.Itoa(len(CaptureWindows))
 }
 
-func downloadImage(id string) {
-	img := Image{
-		Id:    id,
-		Small: small + string([]byte(id)[:2]) + "/" + id + ".jpg",
-		Full:  full + string([]byte(id)[:2]) + "/wallhaven-" + id + ".jpg",
-	}
+func downloadSmallImage(id string) {
+	img := new(Image)
+	img.Id = id
+	img.Small = small + string([]byte(id)[:2]) + "/" + id + ".jpg"
+	img.Full = full + string([]byte(id)[:2]) + "/wallhaven-" + id
 	body, err := fetcher.Fetch(img.Small)
 	if err != nil {
-		return
+		log.Println(err)
 	}
 	img.ImagData = bytes.NewReader(body)
 	imageChan <- img
