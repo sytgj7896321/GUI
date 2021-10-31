@@ -1,13 +1,22 @@
 package pics
 
+import "github.com/cavaliercoder/grab"
+
 type Task struct {
-	ImageId      int
-	DownloadLink string
-	TotalSize    int
-	Cancel       func()
-	Retry        func()
+	ImageId     *string
+	Link        *string
+	CurrentSize int
+	TotalSize   int
+	Cancel      func()
+	Retry       func()
 }
 
 var (
-	taskList = make(chan *Task, 48)
+	TaskList []*Task
 )
+
+func (t *Task) GetOriginal(dst string) {
+	client := grab.NewClient()
+	req, _ := grab.NewRequest(dst, *t.Link)
+	client.Do(req)
+}

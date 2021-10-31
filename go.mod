@@ -5,7 +5,7 @@ go 1.17
 require (
 	fyne.io/fyne/v2 v2.1.0
 	github.com/PuerkitoBio/goquery v1.7.1
-	github.com/disintegration/imaging v1.6.2
+	github.com/cavaliercoder/grab v2.0.0+incompatible
 	github.com/go-resty/resty/v2 v2.6.0
 )
 

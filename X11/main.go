@@ -75,18 +75,31 @@ func main() {
 	})
 
 	//Tasks
-	tasks := []float64{0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6}
+	var tasks []float64
+
 	downloadList := binding.BindFloatList(&tasks)
+	tmpBtn := widget.NewButton("tmp", func() {
+		downloadList.Append(float64(downloadList.Length()+1) / 10)
+
+	})
 	list := widget.NewListWithData(
 		downloadList,
 		func() fyne.CanvasObject {
-			label := widget.NewLabel("Picture")
+			label := widget.NewLabel("unknown")
+			if len(pics.TaskList) > 0 {
+				label.SetText(*pics.TaskList[0].ImageId)
+				pics.TaskList = pics.TaskList[1:]
+			}
 			bar := widget.NewProgressBar()
 			menu := widget.NewMenu(
 				fyne.NewMenu("",
 					//TODO
-					fyne.NewMenuItem("remove", func() { fmt.Println("TODO") }),
-					fyne.NewMenuItem("retry", func() { fmt.Println("TODO") }),
+					fyne.NewMenuItem("remove", func() {
+						fmt.Println("TODO")
+					}),
+					fyne.NewMenuItem("retry", func() {
+						fmt.Println("TODO")
+					}),
 				))
 			return container.NewBorder(nil, nil, label, menu, bar)
 		},
@@ -101,7 +114,7 @@ func main() {
 	tData := binding.BindFloat(&tFloat)
 	tLabel := widget.NewLabelWithData(binding.FloatToStringWithFormat(tData, "Refresh Interval: %0.0fs"))
 	tSlide := widget.NewSliderWithData(5, 120, tData)
-	tSlide.SetValue(30)
+	tSlide.SetValue(15)
 
 	autoSave := widget.NewCheck("Auto Save Original Pictures to Local Directory After Refresh", func(value bool) {
 		if value {
@@ -159,7 +172,8 @@ func main() {
 			container.NewVBox(
 				captureBtn,
 				refreshBtn,
-				closeBtn),
+				closeBtn,
+				tmpBtn),
 		),
 		container.NewTabItemWithIcon(
 			"Download",
