@@ -2,17 +2,23 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"time"
-
 	"github.com/cavaliercoder/grab"
+	"os"
+	"sync"
+	"time"
 )
 
 func main() {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go test()
+	wg.Wait()
+}
+
+func test() {
 	// create client
 	client := grab.NewClient()
 	req, _ := grab.NewRequest("/tmp", "https://w.wallhaven.cc/full/j8/wallhaven-j8e8jp.jpg")
-
 	// start download
 	fmt.Printf("Downloading %v...\n", req.URL())
 	resp := client.Do(req)
@@ -30,9 +36,7 @@ Loop:
 				resp.BytesComplete(),
 				resp.Size,
 				100*resp.Progress())
-
 		case <-resp.Done:
-			// download is complete
 			break Loop
 		}
 	}

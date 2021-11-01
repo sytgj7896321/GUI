@@ -14,13 +14,22 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
-var autoFlag bool
+var (
+	autoFlag = make(chan bool, 1)
+)
 
 func main() {
 	go pics.MakeCache()
+	//go func() {
+	//	for t := range pics.TaskList {
+	//		pics.AdvancedDownloadOriginal(t)
+	//	}
+	//}()
+	pics.DownloadOriginal()
 	myApp := app.NewWithID("NewApp")
 	logLifecycle()
 	mainWindow := myApp.NewWindow("Wallpaper Tool")
@@ -75,9 +84,7 @@ func main() {
 	})
 
 	//Tasks
-	var tasks []float64
-
-	downloadList := binding.BindFloatList(&tasks)
+	downloadList := binding.BindFloatList(&[]float64{})
 	tmpBtn := widget.NewButton("tmp", func() {
 		downloadList.Append(float64(downloadList.Length()+1) / 10)
 
@@ -86,10 +93,10 @@ func main() {
 		downloadList,
 		func() fyne.CanvasObject {
 			label := widget.NewLabel("unknown")
-			if len(pics.TaskList) > 0 {
-				label.SetText(*pics.TaskList[0].ImageId)
-				pics.TaskList = pics.TaskList[1:]
-			}
+			//if len(pics.TaskList) > 0 {
+			//	label.SetText(pics.TaskList[0].ImageId)
+			//	pics.TaskList = pics.TaskList[1:]
+			//}
 			bar := widget.NewProgressBar()
 			menu := widget.NewMenu(
 				fyne.NewMenu("",
@@ -113,8 +120,8 @@ func main() {
 	tFloat := 5.0
 	tData := binding.BindFloat(&tFloat)
 	tLabel := widget.NewLabelWithData(binding.FloatToStringWithFormat(tData, "Refresh Interval: %0.0fs"))
-	tSlide := widget.NewSliderWithData(5, 120, tData)
-	tSlide.SetValue(15)
+	tSlide := widget.NewSliderWithData(5, 60, tData)
+	tSlide.SetValue(30)
 
 	autoSave := widget.NewCheck("Auto Save Original Pictures to Local Directory After Refresh", func(value bool) {
 		if value {
@@ -125,25 +132,27 @@ func main() {
 	})
 
 	autoRefresh := widget.NewCheck("Auto Refresh", func(value bool) {
+		var wg sync.WaitGroup
 		if value {
 			log.Println("Auto Refresh On")
-			autoFlag = true
 			tSlide.Hide()
+			wg.Add(1)
 			go refreshTick(tData)
 		} else {
 			log.Println("Auto Refresh Off")
-			autoFlag = false
+			autoFlag <- false
 			tSlide.Show()
 		}
 	})
 
 	currentPath := widget.NewLabel("Local Save Directory: ")
-	homeDir, _ := os.UserHomeDir()
-	err := createPath(homeDir + "/Pics")
+	pics.LocalSaveDirectory, _ = os.UserHomeDir()
+	pics.LocalSaveDirectory = pics.LocalSaveDirectory + "/Pics"
+	err := createPath(pics.LocalSaveDirectory)
 	if err != nil {
 		log.Println("Can not create directory in Home Directory, please choose a directory by yourself")
 	} else {
-		currentPath.Text = "Local Save Directory: " + homeDir + "/Pics"
+		currentPath.Text = "Local Save Directory: " + pics.LocalSaveDirectory
 		currentPath.Refresh()
 	}
 	localSavePath := widget.NewButton("Select Local Save Directory", func() {
@@ -156,7 +165,8 @@ func main() {
 				log.Println("Cancelled")
 				return
 			}
-			currentPath.Text = "Local Save Directory: " + strings.TrimPrefix(list.String(), "file://")
+			pics.LocalSaveDirectory = strings.TrimPrefix(list.String(), "file://")
+			currentPath.Text = "Local Save Directory: " + pics.LocalSaveDirectory
 			currentPath.Refresh()
 		}, mainWindow)
 	})
@@ -246,10 +256,11 @@ func refreshTick(t binding.ExternalFloat) {
 		tick, _ := t.Get()
 		return time.Duration(tick) * time.Second
 	}(t)) {
-		if autoFlag {
+		select {
+		case <-autoFlag:
+			return
+		default:
 			pics.RefreshAll()
-		} else {
-			break
 		}
 	}
 }

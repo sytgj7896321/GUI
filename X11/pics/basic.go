@@ -5,6 +5,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/cavaliercoder/grab"
 	"io"
 	"log"
 	"strconv"
@@ -19,14 +20,14 @@ type Image struct {
 }
 
 type Window struct {
-	Win      fyne.Window
+	Win      *fyne.Window
 	Refresh  func()
 	Position int
 }
 
 const (
-	//random   = "https://wallhaven.cc/random"
-	random = "https://wallhaven.cc/search?categories=010&purity=010&sorting=random"
+	random = "https://wallhaven.cc/random"
+	//random = "https://wallhaven.cc/search?categories=010&purity=010&sorting=random"
 	//random   = "https://wallhaven.cc/search?categories=111&purity=110&sorting=random"
 	selector = "#thumbs > section > ul"
 	small    = "https://th.wallhaven.cc/small/"
@@ -34,14 +35,15 @@ const (
 )
 
 var (
-	imageChan      = make(chan *Image, 96)
-	CaptureWindows []*Window
-	AutoSaveFlag   = false
+	imageChan          = make(chan *Image, 96)
+	CaptureWindows     []*Window
+	AutoSaveFlag       = false
+	LocalSaveDirectory string
 )
 
 func CloseAllWindows() {
 	for _, w := range CaptureWindows {
-		c := w.Win
+		c := *w.Win
 		go c.Close()
 	}
 	CaptureWindows = CaptureWindows[len(CaptureWindows):]
@@ -62,20 +64,21 @@ func CapturePic() {
 	win.SetContent(image)
 	win.Show()
 	myWin := new(Window)
-	myWin.Win = win
+	myWin.Win = &win
 	myWin.Refresh = func() {
-		if AutoSaveFlag {
-			go func() {
-				task := new(Task)
-				task.ImageId = &img.Id
-				task.Link = &img.Original
-				TaskList = append(TaskList, task)
-			}()
-		}
 		img = <-imageChan
 		image = canvas.NewImageFromReader(img.ImagData, img.Id)
 		image.Resize(fyne.NewSize(300, 200))
-		myWin.Win.Canvas().SetContent(image)
+		w := *myWin.Win
+		w.Canvas().SetContent(image)
+		if AutoSaveFlag {
+			//task := new(Task)
+			//task.ImageId = &img.Id
+			//task.Link = &img.Original
+			//TaskList <- task
+			req, _ := grab.NewRequest(LocalSaveDirectory, img.Original)
+			In <- req
+		}
 	}
 	CaptureWindows = append(CaptureWindows, myWin)
 	myWin.Position = len(CaptureWindows) - 1
@@ -96,14 +99,7 @@ func MakeCache() {
 				panic(err)
 			}
 			dom, _ := goquery.NewDocumentFromReader(strings.NewReader(string(body)))
-			idList := dom.Find(selector).Contents().Map(func(i int, selection *goquery.Selection) string {
-				e, _ := selection.Children().Attr("data-wallpaper-id")
-				return e
-			})
-			imgTypeList := dom.Find(selector).Contents().Map(func(i int, selection *goquery.Selection) string {
-				e := selection.Children().Children().ChildrenFiltered("span.png").Text()
-				return e
-			})
+			idList, imgTypeList := parseQuery(dom)
 			for i := range idList {
 				go downloadSmallImage(idList[i], imgTypeList[i])
 			}
@@ -131,4 +127,16 @@ func downloadSmallImage(id, imgType string) {
 		img.ImagData = nil
 	}
 	imageChan <- img
+}
+
+func parseQuery(dom *goquery.Document) ([]string, []string) {
+	idList := dom.Find(selector).Contents().Map(func(i int, selection *goquery.Selection) string {
+		e, _ := selection.Children().Attr("data-wallpaper-id")
+		return e
+	})
+	imgTypeList := dom.Find(selector).Contents().Map(func(i int, selection *goquery.Selection) string {
+		e := selection.Children().Children().ChildrenFiltered("span.png").Text()
+		return e
+	})
+	return idList, imgTypeList
 }
