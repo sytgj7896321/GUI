@@ -14,7 +14,6 @@ import (
 	"log"
 	"net/url"
 	"os"
-	"runtime"
 	"strings"
 	"time"
 )
@@ -29,9 +28,6 @@ func main() {
 	go pics.MakeCache()
 	pics.DownloadOriginal()
 	myApp := app.NewWithID("NewApp")
-	if runtime.GOOS == "windows" {
-		myApp.Settings().SetTheme(theme.LightTheme())
-	}
 	logLifecycle()
 	mainWindow := myApp.NewWindow("Wallpaper Tool")
 	mainWindow.SetMaster()
