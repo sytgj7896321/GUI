@@ -133,7 +133,11 @@ func main() {
 
 	currentPath := widget.NewLabel("Local Save Directory: ")
 	pics.LocalSaveDirectory, _ = os.UserHomeDir()
-	pics.LocalSaveDirectory = pics.LocalSaveDirectory + "/Pics"
+	if runtime.GOOS == "windows" {
+		pics.LocalSaveDirectory = pics.LocalSaveDirectory + "\\Pics"
+	} else {
+		pics.LocalSaveDirectory = pics.LocalSaveDirectory + "/Pics"
+	}
 	err := createPath(pics.LocalSaveDirectory)
 	if err != nil {
 		log.Println("Can not create directory in Home Directory, please choose a directory by yourself")
