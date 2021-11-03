@@ -14,6 +14,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -101,9 +102,6 @@ func main() {
 			bar := obj.(*fyne.Container).Objects[0].(*widget.ProgressBar)
 			bar.Bind(f)
 		})
-	list.OnSelected = func(id widget.ListItemID) {
-		log.Println(id)
-	}
 	go GetOutData(list)
 
 	//Settings
@@ -278,7 +276,11 @@ func GetOutData(list *widget.List) {
 }
 
 func operateResponse(resp *grab.Response, list *widget.List) int {
-	labels = append(labels, strings.TrimPrefix(resp.Filename, pics.LocalSaveDirectory+"/"))
+	if runtime.GOOS == "windows" {
+		labels = append(labels, strings.TrimPrefix(resp.Filename, pics.LocalSaveDirectory+"\\"))
+	} else {
+		labels = append(labels, strings.TrimPrefix(resp.Filename, pics.LocalSaveDirectory+"/"))
+	}
 	_ = downloadList.Append(resp.Progress())
 	list.ScrollToBottom()
 	position := downloadList.Length() - 1

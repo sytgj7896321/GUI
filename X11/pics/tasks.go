@@ -14,7 +14,7 @@ type Task struct {
 }
 
 var (
-	Routines = 8
+	Routines = 4
 	In       = make(chan *grab.Request, Routines)
 	Out      = make(chan *grab.Response, Routines)
 )
