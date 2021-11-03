@@ -110,8 +110,8 @@ func main() {
 	tFloat := 5.0
 	tData := binding.BindFloat(&tFloat)
 	tLabel := widget.NewLabelWithData(binding.FloatToStringWithFormat(tData, "Refresh Interval: %0.0fs"))
-	tSlide := widget.NewSliderWithData(5, 60, tData)
-	tSlide.SetValue(30)
+	tSlide := widget.NewSliderWithData(15, 120, tData)
+	tSlide.SetValue(60)
 
 	autoSave := widget.NewCheck("Auto Save Original Pictures to Local Directory After Refresh", func(value bool) {
 		if value {
