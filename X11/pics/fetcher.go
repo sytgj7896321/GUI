@@ -8,8 +8,8 @@ import (
 
 func Fetch(link string) ([]byte, error) {
 	client := resty.New()
-	client.RetryCount = 2
-	client.RetryMaxWaitTime = 2 * time.Second
+	client.RetryCount = 3
+	client.RetryMaxWaitTime = 3 * time.Second
 	resp, err := client.R().Get(link)
 	if err != nil {
 		log.Printf("Connect to source website %s failed, please check your network\n", link)

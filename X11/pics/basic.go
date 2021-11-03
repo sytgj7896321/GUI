@@ -72,10 +72,6 @@ func CapturePic() {
 		w := *myWin.Win
 		w.Canvas().SetContent(image)
 		if AutoSaveFlag {
-			//task := new(Task)
-			//task.ImageId = &img.Id
-			//task.Link = &img.Original
-			//TaskList <- task
 			req, _ := grab.NewRequest(LocalSaveDirectory, img.Original)
 			In <- req
 		}

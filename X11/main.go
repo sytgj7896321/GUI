@@ -10,31 +10,28 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"github.com/cavaliercoder/grab"
 	"log"
 	"net/url"
 	"os"
 	"strings"
-	"sync"
 	"time"
 )
 
 var (
-	autoFlag = make(chan bool, 1)
+	autoFlag     = make(chan bool, 1)
+	downloadList binding.ExternalFloatList
+	labels       []string
 )
 
 func main() {
 	go pics.MakeCache()
-	//go func() {
-	//	for t := range pics.TaskList {
-	//		pics.AdvancedDownloadOriginal(t)
-	//	}
-	//}()
 	pics.DownloadOriginal()
 	myApp := app.NewWithID("NewApp")
 	logLifecycle()
 	mainWindow := myApp.NewWindow("Wallpaper Tool")
 	mainWindow.SetMaster()
-	mainWindow.Resize(fyne.NewSize(600, 400))
+	mainWindow.Resize(fyne.NewSize(600, 350))
 
 	//Home
 	captureBtn := widget.NewButton("New Capture Window", func() {
@@ -84,37 +81,30 @@ func main() {
 	})
 
 	//Tasks
-	downloadList := binding.BindFloatList(&[]float64{})
-	tmpBtn := widget.NewButton("tmp", func() {
-		downloadList.Append(float64(downloadList.Length()+1) / 10)
+	downloadList = binding.BindFloatList(&[]float64{})
 
-	})
 	list := widget.NewListWithData(
 		downloadList,
 		func() fyne.CanvasObject {
 			label := widget.NewLabel("unknown")
-			//if len(pics.TaskList) > 0 {
-			//	label.SetText(pics.TaskList[0].ImageId)
-			//	pics.TaskList = pics.TaskList[1:]
-			//}
+			if len(labels) > 0 {
+				label.SetText(labels[len(labels)-1])
+			}
 			bar := widget.NewProgressBar()
-			menu := widget.NewMenu(
-				fyne.NewMenu("",
-					//TODO
-					fyne.NewMenuItem("remove", func() {
-						fmt.Println("TODO")
-					}),
-					fyne.NewMenuItem("retry", func() {
-						fmt.Println("TODO")
-					}),
-				))
-			return container.NewBorder(nil, nil, label, menu, bar)
+			bar.TextFormatter = func() string {
+				return fmt.Sprintf("%s completed %d%%", label.Text, int64(100*bar.Value))
+			}
+			return container.NewMax(bar)
 		},
 		func(item binding.DataItem, obj fyne.CanvasObject) {
 			f := item.(binding.Float)
 			bar := obj.(*fyne.Container).Objects[0].(*widget.ProgressBar)
 			bar.Bind(f)
 		})
+	list.OnSelected = func(id widget.ListItemID) {
+		log.Println(id)
+	}
+	go GetOutData(list)
 
 	//Settings
 	tFloat := 5.0
@@ -132,11 +122,9 @@ func main() {
 	})
 
 	autoRefresh := widget.NewCheck("Auto Refresh", func(value bool) {
-		var wg sync.WaitGroup
 		if value {
 			log.Println("Auto Refresh On")
 			tSlide.Hide()
-			wg.Add(1)
 			go refreshTick(tData)
 		} else {
 			log.Println("Auto Refresh Off")
@@ -182,8 +170,7 @@ func main() {
 			container.NewVBox(
 				captureBtn,
 				refreshBtn,
-				closeBtn,
-				tmpBtn),
+				closeBtn),
 		),
 		container.NewTabItemWithIcon(
 			"Download",
@@ -263,4 +250,37 @@ func refreshTick(t binding.ExternalFloat) {
 			pics.RefreshAll()
 		}
 	}
+}
+
+func GetOutData(list *widget.List) {
+	for {
+		select {
+		case resp := <-pics.Out:
+			position := operateResponse(resp, list)
+			tick := time.NewTicker(25 * time.Millisecond)
+		Loop:
+			for {
+				select {
+				case <-tick.C:
+					_ = downloadList.SetValue(position, resp.Progress())
+				case <-resp.Done:
+					tick.Stop()
+					_ = downloadList.SetValue(position, 1)
+					break Loop
+				}
+			}
+			if err := resp.Err(); err != nil {
+				log.Printf("Download failed: %s\n", err)
+				continue
+			}
+		}
+	}
+}
+
+func operateResponse(resp *grab.Response, list *widget.List) int {
+	labels = append(labels, strings.TrimPrefix(resp.Filename, pics.LocalSaveDirectory+"/"))
+	_ = downloadList.Append(resp.Progress())
+	list.ScrollToBottom()
+	position := downloadList.Length() - 1
+	return position
 }
