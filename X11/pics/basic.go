@@ -7,7 +7,6 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/cavaliercoder/grab"
 	"io"
-	"log"
 	"strconv"
 	"strings"
 )
@@ -119,8 +118,7 @@ func downloadSmallImage(id, imgType string) {
 	body, err := Fetch(small + string([]byte(id)[:2]) + "/" + id + ".jpg")
 	img.ImagData = bytes.NewReader(body)
 	if err != nil {
-		log.Println(err)
-		img.ImagData = nil
+		return
 	}
 	imageChan <- img
 }

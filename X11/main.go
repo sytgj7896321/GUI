@@ -11,7 +11,6 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/cavaliercoder/grab"
-	"log"
 	"net/url"
 	"os"
 	"runtime"
@@ -38,32 +37,21 @@ func main() {
 	myApp := app.NewWithID("NewApp")
 	icon, _ := fyne.LoadResourceFromPath("/usr/local/share/pixmaps/WallpaperTool.png")
 	myApp.SetIcon(icon)
-	logLifecycle()
+	lifecycle()
 	mainWindow := myApp.NewWindow("Wallpaper Tool")
 	mainWindow.SetMaster()
 	mainWindow.Resize(fyne.NewSize(600, 350))
 
 	//Home
-	captureBtn := widget.NewButton("New Capture Window", func() {
+	captureBtn := widget.NewButton("Open New Capture Window", func() {
 		if len(pics.CaptureWindows) < 24 {
 			pics.CapturePic()
-			myApp.SendNotification(&fyne.Notification{
-				Title:   "Wallpaper Tool",
-				Content: "New Capture Window Opened",
-			})
-			getWindowsNum()
 		} else {
 			warn := dialog.NewConfirm("Warning", "Too much windows opened\nAre you still want to add another one?(Not recommended)", func(b bool) {
 				if b {
 					pics.CapturePic()
-					myApp.SendNotification(&fyne.Notification{
-						Title:   "Wallpaper Tool",
-						Content: "New Capture Window Opened",
-					})
-					getWindowsNum()
 				} else {
-					log.Println("Cancel Open New Window")
-					getWindowsNum()
+					return
 				}
 			}, mainWindow)
 			warn.SetDismissText("NO")
@@ -72,13 +60,16 @@ func main() {
 		}
 	})
 
-	refreshBtn := widget.NewButton("Refresh", func() {
+	countBtn := widget.NewButton("Count Windows", func() {
+		getWindowsNum()
+	})
+
+	refreshBtn := widget.NewButton("Refresh Capture Windows Content", func() {
 		pics.RefreshAll()
 		myApp.SendNotification(&fyne.Notification{
 			Title:   "Wallpaper Tool",
 			Content: "All Pictures Refreshed",
 		})
-		getWindowsNum()
 	})
 
 	closeBtn := widget.NewButton("Close All Pictures", func() {
@@ -87,18 +78,28 @@ func main() {
 			Title:   "Wallpaper Tool",
 			Content: "All Windows Closed",
 		})
-		getWindowsNum()
 	})
 
 	//Tasks
-	go GetOutData(downloadList, list)
-
 	clearBtn := widget.NewButton("Clear Task List", func() {
 		err := downloadList.Set([]float64{})
 		if err != nil {
-			log.Println("Clear Task List Failed")
+			fyne.CurrentApp().SendNotification(&fyne.Notification{
+				Title:   "Wallpaper Tool",
+				Content: "Clear Task List Failed",
+			})
+		} else {
+			fyne.CurrentApp().SendNotification(&fyne.Notification{
+				Title:   "Wallpaper Tool",
+				Content: "Task List Cleared",
+			})
 		}
 	})
+
+	downloadContainer := container.NewVSplit(list, clearBtn)
+	downloadContainer.SetOffset(0.8)
+
+	go GetOutData(downloadList, list)
 
 	//Settings
 	tFloat := 5.0
@@ -117,12 +118,18 @@ func main() {
 
 	autoRefresh := widget.NewCheck("Auto Refresh", func(value bool) {
 		if value {
-			log.Println("Auto Refresh On")
+			fyne.CurrentApp().SendNotification(&fyne.Notification{
+				Title:   "Wallpaper Tool",
+				Content: "Auto Refresh On",
+			})
 			tSlide.Hide()
 			go refreshTick(tData)
 		} else {
-			log.Println("Auto Refresh Off")
 			autoFlag <- false
+			fyne.CurrentApp().SendNotification(&fyne.Notification{
+				Title:   "Wallpaper Tool",
+				Content: "Auto Refresh Off",
+			})
 			tSlide.Show()
 		}
 	})
@@ -136,7 +143,10 @@ func main() {
 	}
 	err := createPath(pics.LocalSaveDirectory)
 	if err != nil {
-		log.Println("Can not create directory in Home Directory, please choose a directory by yourself")
+		fyne.CurrentApp().SendNotification(&fyne.Notification{
+			Title:   "Wallpaper Tool",
+			Content: "Can not create directory in Home Directory\nPlease choose a directory by yourself",
+		})
 	} else {
 		currentPath.Text = "Local Save Directory: " + pics.LocalSaveDirectory
 		currentPath.Refresh()
@@ -148,7 +158,6 @@ func main() {
 				return
 			}
 			if list == nil {
-				log.Println("Cancelled")
 				return
 			}
 			pics.LocalSaveDirectory = strings.TrimPrefix(list.String(), "file://")
@@ -167,15 +176,14 @@ func main() {
 			theme.HomeIcon(),
 			container.NewVBox(
 				captureBtn,
+				countBtn,
 				refreshBtn,
 				closeBtn),
 		),
 		container.NewTabItemWithIcon(
 			"Download",
 			theme.DownloadIcon(),
-			container.NewVSplit(
-				list,
-				clearBtn),
+			downloadContainer,
 		),
 		container.NewTabItemWithIcon(
 			"Settings",
@@ -200,23 +208,26 @@ func main() {
 	myApp.Run()
 }
 
-func logLifecycle() {
+func lifecycle() {
 	fyne.CurrentApp().Lifecycle().SetOnStarted(func() {
-		log.Println("Wallpaper Tool: Started")
+		fyne.CurrentApp().SendNotification(&fyne.Notification{
+			Title:   "Wallpaper Tool",
+			Content: "Started",
+		})
 	})
 	fyne.CurrentApp().Lifecycle().SetOnStopped(func() {
-		log.Println("Wallpaper Tool: Stopped")
-	})
-	fyne.CurrentApp().Lifecycle().SetOnEnteredForeground(func() {
-		log.Println("Wallpaper Tool: Entered Foreground")
-	})
-	fyne.CurrentApp().Lifecycle().SetOnExitedForeground(func() {
-		log.Println("Wallpaper Tool: Exited Foreground")
+		fyne.CurrentApp().SendNotification(&fyne.Notification{
+			Title:   "Wallpaper Tool",
+			Content: "Stopped",
+		})
 	})
 }
 
 func getWindowsNum() {
-	log.Println("Total Windows Opened: " + pics.GetLength())
+	fyne.CurrentApp().SendNotification(&fyne.Notification{
+		Title:   "Wallpaper Tool",
+		Content: "Total Windows Opened: " + pics.GetLength(),
+	})
 }
 
 func createPath(path string) error {
@@ -229,7 +240,6 @@ func createPath(path string) error {
 		if err != nil {
 			return err
 		}
-		log.Println("Directory '" + path + "' created")
 		return nil
 	}
 	return err
@@ -281,12 +291,16 @@ func GetOutData(downloadList binding.ExternalFloatList, list *widget.List) {
 					_ = downloadList.SetValue(position, resp.Progress())
 				case <-resp.Done:
 					tick.Stop()
-					_ = downloadList.SetValue(position, 1)
+					_ = downloadList.SetValue(position, resp.Progress())
 					break Loop
 				}
 			}
 			if err := resp.Err(); err != nil {
-				log.Printf("Download failed: %s\n", err)
+				errString := resp.Request.URL().String() + "download failed"
+				errWin := fyne.CurrentApp().NewWindow("Error")
+				errWin.SetContent(widget.NewTextGridFromString(errString))
+				errWin.Resize(fyne.NewSize(float32(len(errString))+10, 50))
+				errWin.Show()
 				continue
 			}
 		}

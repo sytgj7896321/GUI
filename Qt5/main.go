@@ -1,8 +1,8 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
@@ -30,6 +30,14 @@ func main() {
 		val := fmt.Sprintf("Item %d", data.Length()+1)
 		_ = data.Append(val)
 	})
-	myWindow.SetContent(container.NewBorder(nil, add, nil, nil, list))
+	tBtn := widget.NewButton("test", func() {
+		err := errors.New("2333")
+		win := fyne.CurrentApp().NewWindow("Error")
+		win.Resize(fyne.NewSize(300, 200))
+		win.SetContent(widget.NewTextGridFromString(err.Error()))
+		win.Show()
+	})
+
+	myWindow.SetContent(container.NewBorder(tBtn, add, nil, nil, list))
 	myWindow.ShowAndRun()
 }
