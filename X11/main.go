@@ -96,7 +96,7 @@ func main() {
 	clearBtn := widget.NewButton("Clear Task List", func() {
 		err := downloadList.Set([]float64{})
 		if err != nil {
-			return
+			log.Println("Clear Task List Failed")
 		}
 	})
 
