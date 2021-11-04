@@ -93,6 +93,13 @@ func main() {
 	//Tasks
 	go GetOutData(downloadList, list)
 
+	clearBtn := widget.NewButton("Clear Task List", func() {
+		err := downloadList.Set([]float64{})
+		if err != nil {
+			return
+		}
+	})
+
 	//Settings
 	tFloat := 5.0
 	tData := binding.BindFloat(&tFloat)
@@ -166,9 +173,9 @@ func main() {
 		container.NewTabItemWithIcon(
 			"Download",
 			theme.DownloadIcon(),
-			container.NewGridWithColumns(
-				1,
-				list),
+			container.NewVSplit(
+				list,
+				clearBtn),
 		),
 		container.NewTabItemWithIcon(
 			"Settings",
