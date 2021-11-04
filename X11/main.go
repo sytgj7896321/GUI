@@ -21,14 +21,23 @@ import (
 
 var (
 	autoFlag     = make(chan bool, 1)
-	downloadList binding.ExternalFloatList
-	labels       []string
+	downloadList = binding.BindFloatList(&[]float64{})
+	list         = widget.NewListWithData(
+		downloadList,
+		nil,
+		func(item binding.DataItem, obj fyne.CanvasObject) {
+			f := item.(binding.Float)
+			bar := obj.(*fyne.Container).Objects[0].(*widget.ProgressBar)
+			bar.Bind(f)
+		})
 )
 
 func main() {
 	go pics.MakeCache()
 	pics.DownloadOriginal()
 	myApp := app.NewWithID("NewApp")
+	icon, _ := fyne.LoadResourceFromPath("/usr/local/share/pixmaps/WallpaperTool.png")
+	myApp.SetIcon(icon)
 	logLifecycle()
 	mainWindow := myApp.NewWindow("Wallpaper Tool")
 	mainWindow.SetMaster()
@@ -82,27 +91,7 @@ func main() {
 	})
 
 	//Tasks
-	downloadList = binding.BindFloatList(&[]float64{})
-
-	list := widget.NewListWithData(
-		downloadList,
-		func() fyne.CanvasObject {
-			label := widget.NewLabel("unknown")
-			if len(labels) > 0 {
-				label.SetText(labels[len(labels)-1])
-			}
-			bar := widget.NewProgressBar()
-			bar.TextFormatter = func() string {
-				return fmt.Sprintf("%s completed %d%%", label.Text, int64(100*bar.Value))
-			}
-			return container.NewMax(bar)
-		},
-		func(item binding.DataItem, obj fyne.CanvasObject) {
-			f := item.(binding.Float)
-			bar := obj.(*fyne.Container).Objects[0].(*widget.ProgressBar)
-			bar.Bind(f)
-		})
-	go GetOutData(list)
+	go GetOutData(downloadList, list)
 
 	//Settings
 	tFloat := 5.0
@@ -254,11 +243,29 @@ func refreshTick(t binding.ExternalFloat) {
 	}
 }
 
-func GetOutData(list *widget.List) {
+func GetOutData(downloadList binding.ExternalFloatList, list *widget.List) {
 	for {
 		select {
 		case resp := <-pics.Out:
-			position := operateResponse(resp, list)
+			list.CreateItem = func() fyne.CanvasObject {
+				bar := widget.NewProgressBar()
+				bar.TextFormatter = func() string {
+					if runtime.GOOS == "windows" {
+						return fmt.Sprintf(
+							"%s completed %d%%",
+							strings.TrimPrefix(resp.Filename, pics.LocalSaveDirectory+"\\"),
+							int64(100*bar.Value),
+						)
+					}
+					return fmt.Sprintf(
+						"%s completed %d%%",
+						strings.TrimPrefix(resp.Filename, pics.LocalSaveDirectory+"/"),
+						int64(100*bar.Value),
+					)
+				}
+				return container.NewMax(bar)
+			}
+			position := operateResponse(resp, downloadList, list)
 			tick := time.NewTicker(25 * time.Millisecond)
 		Loop:
 			for {
@@ -279,12 +286,7 @@ func GetOutData(list *widget.List) {
 	}
 }
 
-func operateResponse(resp *grab.Response, list *widget.List) int {
-	if runtime.GOOS == "windows" {
-		labels = append(labels, strings.TrimPrefix(resp.Filename, pics.LocalSaveDirectory+"\\"))
-	} else {
-		labels = append(labels, strings.TrimPrefix(resp.Filename, pics.LocalSaveDirectory+"/"))
-	}
+func operateResponse(resp *grab.Response, downloadList binding.ExternalFloatList, list *widget.List) int {
 	_ = downloadList.Append(resp.Progress())
 	list.ScrollToBottom()
 	position := downloadList.Length() - 1

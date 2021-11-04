@@ -4,15 +4,6 @@ import (
 	"github.com/cavaliercoder/grab"
 )
 
-type Task struct {
-	ImageId *string
-	Link    *string
-	Percent float64
-	Done    func()
-	Cancel  func()
-	Retry   func()
-}
-
 var (
 	Routines = 4
 	In       = make(chan *grab.Request, Routines)
