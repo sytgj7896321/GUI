@@ -25,9 +25,9 @@ type Window struct {
 }
 
 const (
-	//random = "https://wallhaven.cc/random"
+	random = "https://wallhaven.cc/random"
 	//random = "https://wallhaven.cc/search?categories=010&purity=010&sorting=random"
-	random   = "https://wallhaven.cc/search?categories=111&purity=110&sorting=random"
+	//random   = "https://wallhaven.cc/search?categories=111&purity=110&sorting=random"
 	selector = "#thumbs > section > ul"
 	small    = "https://th.wallhaven.cc/small/"
 	Full     = "https://w.wallhaven.cc/full/"

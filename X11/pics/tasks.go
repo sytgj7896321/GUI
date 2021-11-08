@@ -6,7 +6,7 @@ import (
 
 var (
 	Routines = 4
-	In       = make(chan *grab.Request, Routines)
+	In       = make(chan *grab.Request, 24)
 	Out      = make(chan *grab.Response, Routines)
 )
 
