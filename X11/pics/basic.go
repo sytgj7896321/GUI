@@ -7,7 +7,6 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/cavaliercoder/grab"
 	"io"
-	"strconv"
 	"strings"
 )
 
@@ -35,21 +34,21 @@ const (
 
 var (
 	imageChan          = make(chan *Image, 96)
-	CaptureWindows     []*Window
+	captureWindows     []*Window
 	AutoSaveFlag       = false
 	LocalSaveDirectory string
 )
 
 func CloseAllWindows() {
-	for _, w := range CaptureWindows {
+	for _, w := range captureWindows {
 		c := *w.Win
 		go c.Close()
 	}
-	CaptureWindows = CaptureWindows[len(CaptureWindows):]
+	captureWindows = captureWindows[len(captureWindows):]
 }
 
 func RefreshAll() {
-	for _, r := range CaptureWindows {
+	for _, r := range captureWindows {
 		go r.Refresh()
 	}
 }
@@ -75,14 +74,14 @@ func CapturePic() {
 			In <- req
 		}
 	}
-	CaptureWindows = append(CaptureWindows, myWin)
-	myWin.Position = len(CaptureWindows) - 1
+	captureWindows = append(captureWindows, myWin)
+	myWin.Position = len(captureWindows) - 1
 	win.SetCloseIntercept(func() {
 		win.Close()
-		for _, w := range CaptureWindows[myWin.Position+1:] {
+		for _, w := range captureWindows[myWin.Position+1:] {
 			w.Position--
 		}
-		CaptureWindows = append(CaptureWindows[:myWin.Position], CaptureWindows[myWin.Position+1:]...)
+		captureWindows = append(captureWindows[:myWin.Position], captureWindows[myWin.Position+1:]...)
 	})
 }
 
@@ -102,8 +101,8 @@ func MakeCache() {
 	}
 }
 
-func GetLength() string {
-	return strconv.Itoa(len(CaptureWindows))
+func GetLength() int {
+	return len(captureWindows)
 }
 
 func downloadSmallImage(id, imgType string) {

@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -44,7 +45,7 @@ func main() {
 
 	//Home
 	captureBtn := widget.NewButton("Open New Capture Window", func() {
-		if len(pics.CaptureWindows) < 24 {
+		if pics.GetLength() < 24 {
 			pics.CapturePic()
 		} else {
 			warn := dialog.NewConfirm("Warning", "Too much windows opened\nAre you still want to add another one?(Not recommended)", func(b bool) {
@@ -226,7 +227,7 @@ func lifecycle() {
 func getWindowsNum() {
 	fyne.CurrentApp().SendNotification(&fyne.Notification{
 		Title:   "Wallpaper Tool",
-		Content: "Total Windows Opened: " + pics.GetLength(),
+		Content: "Total Windows Opened: " + strconv.Itoa(pics.GetLength()),
 	})
 }
 
