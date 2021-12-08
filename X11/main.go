@@ -22,14 +22,6 @@ import (
 var (
 	autoFlag     = make(chan bool, 1)
 	downloadList = binding.BindFloatList(&[]float64{})
-	list         = widget.NewListWithData(
-		downloadList,
-		nil,
-		func(item binding.DataItem, obj fyne.CanvasObject) {
-			f := item.(binding.Float)
-			bar := obj.(*fyne.Container).Objects[0].(*widget.ProgressBar)
-			bar.Bind(f)
-		})
 )
 
 func main() {
@@ -96,7 +88,14 @@ func main() {
 			})
 		}
 	})
-
+	var list = widget.NewListWithData(
+		downloadList,
+		nil,
+		func(item binding.DataItem, obj fyne.CanvasObject) {
+			f := item.(binding.Float)
+			bar := obj.(*fyne.Container).Objects[0].(*widget.ProgressBar)
+			bar.Bind(f)
+		})
 	downloadContainer := container.NewVSplit(list, clearBtn)
 	downloadContainer.SetOffset(0.8)
 
