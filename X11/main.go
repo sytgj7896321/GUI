@@ -27,7 +27,7 @@ var (
 func main() {
 	go pics.MakeCache()
 	pics.DownloadOriginal()
-	myApp := app.NewWithID("Wallpaper Tool")
+	myApp := app.NewWithID("WallpaperTool")
 	icon, _ := fyne.LoadResourceFromPath("/usr/local/share/pixmaps/WallpaperTool.png")
 	myApp.SetIcon(icon)
 	lifecycle()
