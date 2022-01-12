@@ -1,7 +1,7 @@
 package main
 
 import (
-	"GUI/X11/pics"
+	"GUI/wallpaperTool/pics"
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
